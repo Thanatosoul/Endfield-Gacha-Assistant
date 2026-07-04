@@ -32,9 +32,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_YOUR_PUBLIC_KEY",
+      "pubkey": "请替换为你的公钥（见下方说明）",
       "endpoints": [
-        "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/latest.json"
+        "https://github.com/Thanatosoul/Endfield-Gacha-Assistant/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
