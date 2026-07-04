@@ -32,7 +32,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "请替换为你的公钥（见下方说明）",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYwMTUxNzEzREE5NjRFRTQKUldUa1RwYmFFeGNWOE5uc3pnKzQxK3JFY0diUHVqSDVoaXpXbHE5TXM5RXZwa3dXZTE2NEt2dHoK",
       "endpoints": [
         "https://github.com/Thanatosoul/Endfield-Gacha-Assistant/releases/latest/download/latest.json"
       ],
