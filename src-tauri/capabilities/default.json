@@ -1,0 +1,113 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default desktop capability",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-focus",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:event:default",
+    "core:event:allow-emit",
+    "core:event:allow-listen",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://as.hypergryph.com/**" },
+        { "url": "https://as.gryphline.com/**" },
+        { "url": "https://binding-api-account-prod.hypergryph.com/**" },
+        { "url": "https://binding-api-account-prod.gryphline.com/**" },
+        { "url": "https://ef-webview.hypergryph.com/**" },
+        { "url": "https://ef-webview.gryphline.com/**" },
+        { "url": "https://zonai.skland.com/**" },
+        { "url": "https://fp-it.portal101.cn/**" }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-cancel",
+      "allow": [
+        { "url": "https://as.hypergryph.com/**" },
+        { "url": "https://as.gryphline.com/**" },
+        { "url": "https://binding-api-account-prod.hypergryph.com/**" },
+        { "url": "https://binding-api-account-prod.gryphline.com/**" },
+        { "url": "https://ef-webview.hypergryph.com/**" },
+        { "url": "https://ef-webview.gryphline.com/**" },
+        { "url": "https://zonai.skland.com/**" },
+        { "url": "https://fp-it.portal101.cn/**" }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-read-body",
+      "allow": [
+        { "url": "https://as.hypergryph.com/**" },
+        { "url": "https://as.gryphline.com/**" },
+        { "url": "https://binding-api-account-prod.hypergryph.com/**" },
+        { "url": "https://binding-api-account-prod.gryphline.com/**" },
+        { "url": "https://ef-webview.hypergryph.com/**" },
+        { "url": "https://ef-webview.gryphline.com/**" },
+        { "url": "https://zonai.skland.com/**" },
+        { "url": "https://fp-it.portal101.cn/**" }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-send",
+      "allow": [
+        { "url": "https://as.hypergryph.com/**" },
+        { "url": "https://as.gryphline.com/**" },
+        { "url": "https://binding-api-account-prod.hypergryph.com/**" },
+        { "url": "https://binding-api-account-prod.gryphline.com/**" },
+        { "url": "https://ef-webview.hypergryph.com/**" },
+        { "url": "https://ef-webview.gryphline.com/**" },
+        { "url": "https://zonai.skland.com/**" },
+        { "url": "https://fp-it.portal101.cn/**" }
+      ]
+    },
+    "fs:default",
+    {
+      "identifier": "fs:allow-app-read-recursive",
+      "allow": [{ "path": "$APPDATA/**" }]
+    },
+    {
+      "identifier": "fs:allow-app-write-recursive",
+      "allow": [{ "path": "$APPDATA/**" }]
+    },
+    "fs:allow-download-read-recursive",
+    "fs:allow-download-write-recursive",
+    "fs:allow-document-read-recursive",
+    "fs:allow-document-write-recursive",
+    "fs:allow-exe-read-recursive",
+    {
+      "identifier": "fs:allow-exe-write-recursive",
+      "allow": [{ "path": "$EXE/**" }, { "path": "$EXE/pool/**" }]
+    },
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "fs:allow-read-file",
+    "fs:allow-read-text-file",
+    "fs:allow-write-file",
+    "fs:allow-write-text-file",
+    "fs:allow-remove",
+    "fs:allow-stat",
+    "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "opener:default",
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-close",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download",
+    "updater:allow-install"
+  ]
+}

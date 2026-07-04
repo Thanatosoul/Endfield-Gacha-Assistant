@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --app-bg: #000000;
+  --panel-bg: rgba(12, 12, 12, 0.88);
+  --panel-strong: rgba(20, 20, 20, 0.94);
+  --panel-border: rgba(253, 253, 31, 0.12);
+  --text-main: #fafafa;
+  --text-muted: #8a8a8a;
+  --accent: #fdfd1f;
+  --accent-strong: #fffa00;
+  --accent-dim: rgba(253, 253, 31, 0.15);
+  --success: #4ade80;
+  --warning: #fdfd1f;
+  --danger: #f87171;
+  --grid-line: rgba(253, 253, 31, 0.04);
+  background:
+    radial-gradient(ellipse 120% 60% at 50% 0%, rgba(253, 253, 31, 0.06), transparent 50%),
+    linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --app-bg: #f7f6f2;
+  --panel-bg: rgba(255, 255, 255, 0.92);
+  --panel-strong: rgba(250, 250, 246, 0.98);
+  --panel-border: rgba(150, 140, 0, 0.22);
+  --text-main: #141414;
+  --text-muted: #5c5c5c;
+  --accent: #8a8000;
+  --accent-strong: #6b6200;
+  --accent-dim: rgba(160, 148, 0, 0.10);
+  --success: #15803d;
+  --warning: #8a6d00;
+  --danger: #b91c1c;
+  --grid-line: rgba(160, 148, 0, 0.06);
+  background:
+    radial-gradient(ellipse 120% 60% at 50% 0%, rgba(160, 148, 0, 0.04), transparent 50%),
+    linear-gradient(180deg, #fafaf5 0%, #f1f0e8 100%);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text-main);
+  background:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    var(--app-bg);
+  background-size: 28px 28px, 28px 28px, auto;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(253, 253, 31, 0.18);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(253, 253, 31, 0.32);
+}
+
+.panel {
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  backdrop-filter: blur(24px);
+  box-shadow: inset 0 1px 0 rgba(253, 253, 31, 0.04), 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.panel-strong {
+  border: 1px solid var(--panel-border);
+  background: var(--panel-strong);
+  backdrop-filter: blur(24px);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.accent-line {
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 35%, transparent 100%);
+}
+
+select {
+  color: var(--text-main);
+}
+
+select option,
+select optgroup {
+  background: #1a1a1a;
+  color: var(--text-main);
+}
+
+[data-theme='light'] select option,
+[data-theme='light'] select optgroup {
+  background: #ffffff;
+  color: var(--text-main);
+}
+
+/* Endfield-style active button glow */
+.btn-accent {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.btn-accent:hover {
+  background: rgba(253, 253, 31, 0.2);
+  box-shadow: 0 0 16px rgba(253, 253, 31, 0.12);
+}

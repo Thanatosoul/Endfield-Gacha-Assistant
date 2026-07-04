@@ -1,0 +1,23 @@
+node_modules/
+dist/
+
+# Rust build (src-tauri/.gitignore already handles target/)
+# but keep explicit for safety
+src-tauri/target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log

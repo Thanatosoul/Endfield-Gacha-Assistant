@@ -1,0 +1,15 @@
+# Rust build configuration for Endfield Gacha Assistant
+# Optimizes linker behavior for production builds
+
+[target.x86_64-pc-windows-msvc]
+# MSVC linker: enable link-time code generation to work with Rust LTO
+rustflags = ["-C", "link-arg=/LTCG"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-dead_strip"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-dead_strip"]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-Wl,--gc-sections", "-C", "link-arg=-Wl,--strip-all"]
