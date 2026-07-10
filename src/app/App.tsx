@@ -27,7 +27,6 @@ type PageKey = 'statistics' | 'characterPools' | 'weaponPools' | 'records' | 'ac
 type NavItem = { key: PageKey; label: string; icon: ReactNode };
 
 declare const __APP_VERSION__: string;
-declare const __RESOURCE_VERSION__: string;
 
 const navigation: NavItem[] = [
   { key: 'statistics', label: '统计', icon: <BarChart3 className="h-4 w-4" /> },
@@ -90,6 +89,7 @@ function DataLayer({ boot }: { boot: BootstrapResult }) {
     initialMetadata: boot.metadata,
     initialStorageState: boot.storageState,
     initialPathsLabel: boot.pathsLabel,
+    initialResourceVersion: boot.resourceVersion,
   });
   return (
     <DataContext.Provider value={dataCtx}>
@@ -110,7 +110,7 @@ function SyncLayer() {
 function AppContent() {
   const { theme } = useTheme();
   const { notifications, dismissNotification, pushNotification } = useNotifications();
-  const { accounts, activeAccountId, summary, poolSummaries, pityGaps, pityGapsWpn, records } = useData();
+  const { accounts, activeAccountId, summary, poolSummaries, pityGaps, pityGapsWpn, records, resourceVersion } = useData();
   const [page, setPage] = useState<PageKey>('statistics');
   const [now, setNow] = useState(new Date());
 
@@ -214,7 +214,7 @@ function AppContent() {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted">
               <span>程序版本</span><span className="text-right font-mono text-[color:var(--text-main)]">v{__APP_VERSION__}</span>
-              <span>资源版本</span><span className="text-right font-mono text-[color:var(--text-main)]">v{__RESOURCE_VERSION__}</span>
+              <span>资源版本</span><span className="text-right font-mono text-[color:var(--text-main)]">{resourceVersion === '未同步' ? resourceVersion : `v${resourceVersion}`}</span>
             </div>
             <div className="mt-3 space-y-1 text-xs text-muted">
               <div className="flex items-center justify-between">

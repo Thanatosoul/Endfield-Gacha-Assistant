@@ -28,7 +28,8 @@
         { "url": "https://ef-webview.hypergryph.com/**" },
         { "url": "https://ef-webview.gryphline.com/**" },
         { "url": "https://zonai.skland.com/**" },
-        { "url": "https://fp-it.portal101.cn/**" }
+        { "url": "https://fp-it.portal101.cn/**" },
+        { "url": "https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/**" }
       ]
     },
     {
@@ -41,7 +42,8 @@
         { "url": "https://ef-webview.hypergryph.com/**" },
         { "url": "https://ef-webview.gryphline.com/**" },
         { "url": "https://zonai.skland.com/**" },
-        { "url": "https://fp-it.portal101.cn/**" }
+        { "url": "https://fp-it.portal101.cn/**" },
+        { "url": "https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/**" }
       ]
     },
     {
@@ -54,7 +56,8 @@
         { "url": "https://ef-webview.hypergryph.com/**" },
         { "url": "https://ef-webview.gryphline.com/**" },
         { "url": "https://zonai.skland.com/**" },
-        { "url": "https://fp-it.portal101.cn/**" }
+        { "url": "https://fp-it.portal101.cn/**" },
+        { "url": "https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/**" }
       ]
     },
     {
@@ -67,7 +70,8 @@
         { "url": "https://ef-webview.hypergryph.com/**" },
         { "url": "https://ef-webview.gryphline.com/**" },
         { "url": "https://zonai.skland.com/**" },
-        { "url": "https://fp-it.portal101.cn/**" }
+        { "url": "https://fp-it.portal101.cn/**" },
+        { "url": "https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/**" }
       ]
     },
     "fs:default",

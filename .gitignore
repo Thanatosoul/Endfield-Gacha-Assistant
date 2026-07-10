@@ -21,3 +21,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Portable runtime data and local development artifacts
+data/
+.agent-debug/

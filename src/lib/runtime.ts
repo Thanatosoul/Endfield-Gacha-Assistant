@@ -10,7 +10,14 @@ export function isTauriRuntime(): boolean {
 }
 
 export function getAssetUrl(relativePath: string): string {
-  return relativePath;
+  const normalized = relativePath.replace(/^\/source\//, '');
+  const mapped = normalized
+    .replace(/^character\//, 'images/character/')
+    .replace(/^weapon\//, 'images/weapon/')
+    .replace(/^pool\/background\//, 'images/banner/');
+  // Windows WebView2 exposes Tauri custom protocols as http://<scheme>.localhost.
+  if (isTauriRuntime()) return `http://asset-cache.localhost/${mapped}`;
+  return `https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/master/public/${mapped}`;
 }
 
 export async function resolveAppPaths(): Promise<AppPaths> {

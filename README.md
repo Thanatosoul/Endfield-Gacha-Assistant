@@ -14,6 +14,7 @@
 - **每日签到** — 一键完成森空岛明日方舟 & 终末地的每日签到
 - **抽卡统计** — 六星出率、保底计数、UP 命中率、角色 / 武器分池统计等可视化概览
 - **卡池浏览器** — 查看卡池元数据（名称、UP 角色、物品列表），支持编辑
+- **资源同步与离线缓存** — 启动后后台检查卡池资源；图片优先读取本地缓存，断网仍可浏览已同步资源
 - **数据导入/导出** — JSON 全量迁移（含旧版格式自动转换） & CSV 导入导出
 - **WebDAV 备份** — 将数据备份至自建 WebDAV 服务器，支持列举 / 恢复历史备份
 - **安全存储** — Token 使用 AES-256-CBC 设备指纹加密，仅本地可解密
@@ -84,7 +85,7 @@ src/
   modules/
     account/              — 账号管理
     import-export/        — JSON / CSV 导入导出（含旧版格式兼容）
-    metadata/             — 卡池元数据种子（版本化）
+    metadata/             — 卡池元数据与远端资源同步
     official-api/         — 森空岛 HG API 客户端（分页、限速、重试）
     pool-management/      — 卡池数据文件管理
     skland-checkin/       — 森空岛每日签到
@@ -106,8 +107,8 @@ scripts/
 推送 tag 触发 CI（需自行配置 GitHub Actions）:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 首次发布前，在 GitHub Secrets 中配置：

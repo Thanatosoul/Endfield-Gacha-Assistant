@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Cloud, Download } from 'lucide-react';
+import { Cloud, Download, RefreshCw } from 'lucide-react';
 import { useData, useTheme } from '@/app/hooks/contexts';
 import { getSecurePreference, saveSecurePreference } from '@/modules/storage/repositories';
 import { isTauriRuntime } from '@/lib/runtime';
@@ -11,9 +11,11 @@ const WDAV_PASS_KEY = 'webdav.pass';
 
 export const SettingsPage = memo(function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { storageState, pathsLabel, exportJson, importJson, exportCsv, importCsv } = useData();
+  const { storageState, pathsLabel, exportJson, importJson, exportCsv, importCsv, syncAssets } = useData();
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [csvMsg, setCsvMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [assetMsg, setAssetMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [syncingAssets, setSyncingAssets] = useState(false);
 
   // WebDAV state
   const [wdavUrl, setWdavUrl] = useState('');
@@ -79,6 +81,18 @@ export const SettingsPage = memo(function SettingsPage() {
       setCsvMsg({ ok: true, text: `已导入 ${count} 条记录` });
     } catch (e) {
       setCsvMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
+    }
+  };
+
+  const handleSyncAssets = async () => {
+    setSyncingAssets(true);
+    try {
+      const result = await syncAssets();
+      setAssetMsg({ ok: true, text: `已同步 ${result.pools} 个卡池，资源版本 ${result.version}` });
+    } catch (error) {
+      setAssetMsg({ ok: false, text: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setSyncingAssets(false);
     }
   };
 
@@ -159,6 +173,16 @@ export const SettingsPage = memo(function SettingsPage() {
               <ThemeBtn active={theme === 'dark'}  label="深色主题"  onClick={() => void setTheme('dark')} />
               <ThemeBtn active={theme === 'light'} label="浅色主题" onClick={() => void setTheme('light')} />
             </div>
+          </div>
+
+          <div className="panel-strong rounded-3xl p-5">
+            <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">资源同步</div>
+            <p className="mt-3 text-sm text-muted">应用启动时会检查卡池数据。同步失败时保留上次成功的本地版本。</p>
+            <ActionBtn onClick={() => void handleSyncAssets()} disabled={syncingAssets}>
+              <RefreshCw className={syncingAssets ? 'animate-spin' : ''} />
+              {syncingAssets ? '同步中…' : '同步资源'}
+            </ActionBtn>
+            {assetMsg && <MsgBanner {...assetMsg} onDismiss={() => setAssetMsg(null)} />}
           </div>
 
           {/* JSON backup */}
@@ -263,10 +287,10 @@ function ThemeBtn({ active, label, onClick }: { active: boolean; label: string; 
   );
 }
 
-function ActionBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function ActionBtn({ children, onClick, disabled = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick}
-      className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-3 text-sm transition hover:border-[color:var(--accent)]/50">
+    <button type="button" onClick={onClick} disabled={disabled}
+      className="inline-flex items-center gap-2 rounded-2xl border border-[color:var(--panel-border)] px-4 py-3 text-sm transition hover:border-[color:var(--accent)]/50 disabled:cursor-wait disabled:opacity-60">
       {children}
     </button>
   );

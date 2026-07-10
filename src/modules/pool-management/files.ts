@@ -36,14 +36,7 @@ export async function readPoolJsonMerged(poolId: string): Promise<ParsedPoolJson
     }
   }
 
-  try {
-    const response = await fetch(`/source/pool/data/${poolId}.json`);
-    if (!response.ok) return null;
-    const raw = (await response.json()) as unknown;
-    return parsePoolJson(raw);
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 export async function ensurePoolScaffold(pool: PoolMetadata): Promise<void> {
@@ -78,7 +71,7 @@ export async function getPoolImageCandidates(
   version: number,
 ): Promise<{ background: string[]; avatar: string[] }> {
   const background: string[] = [
-    withVersion(getAssetUrl(`/source/pool/background/${poolId}.png`), version),
+    withVersion(getAssetUrl(`images/banner/${_category === 'weapon' ? 'weapon' : 'char'}/${poolId}.png`), version),
   ];
   const avatar: string[] = [];
 

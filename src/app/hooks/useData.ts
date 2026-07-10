@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { GameAccount, GachaRecord, PoolMetadata } from '@/domain/types';
 import { seedMetadata } from '@/modules/metadata/catalog';
 import {
@@ -13,10 +13,14 @@ import { listAccounts, listMetadata, listRecordsByAccount } from '@/modules/stor
 import { deleteAccountCascade, savePreference, saveMetadataSnapshot } from '@/modules/storage/repositories';
 import { summarizePools, summarizeRecords, selectFeaturedPools, computePityGaps } from '@/modules/stats-engine/summary';
 import { ensurePoolScaffold } from '@/modules/pool-management/files';
+import { fetchRemoteAssets } from '@/modules/metadata/remoteAssets';
+import { invoke } from '@tauri-apps/api/core';
+import { isTauriRuntime } from '@/lib/runtime';
 import { useAuth, useNotifications } from './contexts';
 import type { DataContextValue } from './contexts';
 
 const ACTIVE_ACCOUNT_KEY = 'ui.activeAccountId';
+const RESOURCE_VERSION_KEY = 'resources.version';
 
 interface DataBootInput {
   initialAccounts: GameAccount[];
@@ -25,6 +29,7 @@ interface DataBootInput {
   initialMetadata: PoolMetadata[];
   initialStorageState: string;
   initialPathsLabel: string;
+  initialResourceVersion: string;
 }
 
 export function useDataState(input: DataBootInput): DataContextValue {
@@ -37,6 +42,7 @@ export function useDataState(input: DataBootInput): DataContextValue {
   const [metadata, setMetadata] = useState<PoolMetadata[]>(input.initialMetadata);
   const [storageState] = useState(input.initialStorageState);
   const [pathsLabel] = useState(input.initialPathsLabel);
+  const [resourceVersion, setResourceVersion] = useState(input.initialResourceVersion);
 
   const metadataIndex = useMemo(() => {
     const map = new Map<string, PoolMetadata>();
@@ -78,6 +84,28 @@ export function useDataState(input: DataBootInput): DataContextValue {
     setRecords(await listRecordsByAccount(accountId ?? undefined));
     if (accountId) pushNotification('info', '已切换账号', accountId);
   }, [pushNotification]);
+
+  const syncRemoteAssets = useCallback(async (forceImageRefresh: boolean) => {
+    const result = await fetchRemoteAssets();
+    await saveMetadataSnapshot(result.metadata);
+    await savePreference(RESOURCE_VERSION_KEY, result.version);
+    const versionChanged = result.version !== resourceVersion;
+    if (isTauriRuntime() && (forceImageRefresh || versionChanged)) {
+      await invoke<number>('sync_asset_cache', { force: forceImageRefresh });
+    }
+    setMetadata(result.metadata);
+    setResourceVersion(result.version);
+    await Promise.allSettled(result.metadata.map((pool) => ensurePoolScaffold(pool)));
+    return { pools: result.metadata.length, version: result.version, updatedAt: result.updatedAt };
+  }, [resourceVersion]);
+
+  const syncAssets = useCallback(() => syncRemoteAssets(true), [syncRemoteAssets]);
+
+  useEffect(() => {
+    void syncRemoteAssets(false).catch(() => {
+      // Startup synchronization is intentionally non-blocking; the local snapshot remains active.
+    });
+  }, [syncRemoteAssets]);
 
   const deleteAccount = useCallback(async (accountId: string) => {
     const account = accounts.find((e) => e.id === accountId);
@@ -131,9 +159,9 @@ export function useDataState(input: DataBootInput): DataContextValue {
   }, [pushNotification, refresh]);
 
   return {
-    storageState, pathsLabel, accounts, activeAccountId, setActiveAccountId,
+    storageState, pathsLabel, resourceVersion, accounts, activeAccountId, setActiveAccountId,
     records, metadata, metadataIndex, summary, poolSummaries, featuredPools,
-    pityGaps, pityGapsWpn, refresh, deleteAccount, importBindings,
+    pityGaps, pityGapsWpn, refresh, syncAssets, deleteAccount, importBindings,
     exportJson, exportFullJson, importJson, exportCsv, importCsv,
   };
 }

@@ -1,6 +1,6 @@
 [package]
 name = "endfield-gacha-assistant"
-version = "0.1.0"
+version = "1.1.0"
 description = "Endfield Gacha Assistant"
 authors = ["OpenCode"]
 edition = "2021"

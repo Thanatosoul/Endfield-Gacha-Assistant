@@ -19,6 +19,7 @@ export interface BootstrapResult {
   metadata: PoolMetadata[];
   storageState: string;
   pathsLabel: string;
+  resourceVersion: string;
   error: string | null;
 }
 
@@ -26,12 +27,13 @@ const THEME_KEY = 'ui.theme';
 const ACTIVE_ACCOUNT_KEY = 'ui.activeAccountId';
 const SKLAND_TOKEN_KEY = 'skland.token';
 const APP_TOKEN_KEY = 'auth.appToken';
+const RESOURCE_VERSION_KEY = 'resources.version';
 
 export function useBootstrap(): BootstrapResult {
   const [result, setResult] = useState<BootstrapResult>({
     ready: false, theme: 'dark', token: '', appToken: null,
     activeAccountId: null, accounts: [], records: [], metadata: seedMetadata,
-    storageState: '', pathsLabel: '', error: null,
+    storageState: '', pathsLabel: '', resourceVersion: '未同步', error: null,
   });
 
   useEffect(() => {
@@ -40,8 +42,8 @@ export function useBootstrap(): BootstrapResult {
       try {
         const { databaseUrl } = await bootstrapStorage();
 
-        const [savedTheme, savedActiveAccount, savedToken] = await Promise.all([
-          getPreference(THEME_KEY), getPreference(ACTIVE_ACCOUNT_KEY), getPreference(SKLAND_TOKEN_KEY),
+        const [savedTheme, savedActiveAccount, savedToken, savedResourceVersion] = await Promise.all([
+          getPreference(THEME_KEY), getPreference(ACTIVE_ACCOUNT_KEY), getPreference(SKLAND_TOKEN_KEY), getPreference(RESOURCE_VERSION_KEY),
         ]);
         const nextTheme = savedTheme?.value === 'light' ? 'light' : 'dark';
         const preferredAccountId = savedActiveAccount?.value?.trim() ? savedActiveAccount.value : null;
@@ -61,7 +63,7 @@ export function useBootstrap(): BootstrapResult {
         const appToken = encryptedAppToken || null;
         if (!alive) return;
 
-        await saveMetadataSnapshot(seedMetadata);
+        const resourceVersion = savedResourceVersion?.value?.trim() || '未同步';
         if (!alive) return;
 
         const accountsData = await listAccounts();
@@ -72,8 +74,9 @@ export function useBootstrap(): BootstrapResult {
         const recordsData = await listRecordsByAccount(accountId ?? undefined);
 
         const metadataData = await listMetadata();
+        if (metadataData.length === 0) await saveMetadataSnapshot(seedMetadata);
         const finalMetadata = metadataData.length > 0 ? metadataData : seedMetadata;
-        const pools = metadataData.length > 0 ? metadataData : seedMetadata;
+        const pools = finalMetadata;
         await Promise.allSettled(pools.map((p) => ensurePoolScaffold(p)));
 
         if (!alive) return;
@@ -87,7 +90,7 @@ export function useBootstrap(): BootstrapResult {
           ready: true, theme: nextTheme, token, appToken,
           activeAccountId: accountId, accounts: accountsData, records: recordsData,
           metadata: finalMetadata,
-          storageState: databaseUrl.replace(/^sqlite:/, ''),
+          storageState: databaseUrl.replace(/^sqlite:/, ''), resourceVersion,
           pathsLabel, error: null,
         });
       } catch (error) {
@@ -96,7 +99,7 @@ export function useBootstrap(): BootstrapResult {
         setResult((prev) => ({
           ...prev, ready: true,
           storageState: `预览模式：${message}`,
-          pathsLabel: '浏览器预览',
+          pathsLabel: '浏览器预览', resourceVersion: '未同步',
           error: message,
         }));
       }

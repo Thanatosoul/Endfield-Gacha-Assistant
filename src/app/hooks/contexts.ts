@@ -59,6 +59,7 @@ export function useAuth(): AuthContextValue {
 export interface DataContextValue {
   storageState: string;
   pathsLabel: string;
+  resourceVersion: string;
   accounts: GameAccount[];
   activeAccountId: string | null;
   setActiveAccountId: (id: string | null) => Promise<void>;
@@ -71,6 +72,7 @@ export interface DataContextValue {
   pityGaps: PityGapInfo[];
   pityGapsWpn: PityGapInfo[];
   refresh: (preferredAccountId?: string | null) => Promise<void>;
+  syncAssets: () => Promise<{ pools: number; version: string; updatedAt: string }>;
   deleteAccount: (accountId: string) => Promise<void>;
   importBindings: () => Promise<void>;
   exportJson: () => Promise<string | null>;

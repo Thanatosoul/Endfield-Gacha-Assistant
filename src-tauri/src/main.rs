@@ -4,7 +4,9 @@ mod webdav;
 
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{http::{header, Response, StatusCode}, AppHandle, Emitter, Manager};
+
+const ASSET_BASE_URL: &str = "https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/master/public";
 
 #[derive(Clone, Serialize)]
 struct AppPaths {
@@ -25,6 +27,79 @@ fn resolve_portable_data_dir() -> Result<PathBuf, String> {
 
 fn pool_data_root() -> Result<PathBuf, String> {
     Ok(resolve_portable_data_dir()?.join("pool"))
+}
+
+fn asset_cache_root() -> Result<PathBuf, String> {
+    Ok(resolve_portable_data_dir()?.join("assets"))
+}
+
+fn safe_asset_path(relative_path: &str) -> Result<PathBuf, String> {
+    let path = Path::new(relative_path);
+    if path.is_absolute() || path.components().any(|part| matches!(part, std::path::Component::ParentDir)) {
+        return Err("invalid asset path".to_string());
+    }
+    Ok(asset_cache_root()?.join(path))
+}
+
+fn legacy_asset_paths(relative_path: &str) -> Result<Vec<PathBuf>, String> {
+    let relative = Path::new(relative_path);
+    let data_dir = resolve_portable_data_dir()?;
+    let mut paths = vec![
+        data_dir.join("pool").join(relative),
+        data_dir.join("pool").join("source").join(relative),
+    ];
+    let file_name = relative.file_name().ok_or_else(|| "invalid asset path".to_string())?;
+    if relative.starts_with("images/character") {
+        paths.push(data_dir.join("pool").join("character").join(file_name));
+        paths.push(data_dir.join("pool").join("source").join("character").join(file_name));
+    } else if relative.starts_with("images/weapon") {
+        paths.push(data_dir.join("pool").join("weapon").join(file_name));
+        paths.push(data_dir.join("pool").join("source").join("weapon").join(file_name));
+    } else if relative.starts_with("images/banner") {
+        paths.push(data_dir.join("pool").join("background").join(file_name));
+        paths.push(data_dir.join("pool").join("source").join("pool").join("background").join(file_name));
+    }
+    Ok(paths)
+}
+
+fn content_type(path: &Path) -> &'static str {
+    match path.extension().and_then(|ext| ext.to_str()) {
+        Some("png") => "image/png",
+        Some("webp") => "image/webp",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        _ => "application/octet-stream",
+    }
+}
+
+fn cache_asset(relative_path: &str, refresh: bool) -> Result<Vec<u8>, String> {
+    let local_path = safe_asset_path(relative_path)?;
+    if !refresh {
+        if let Ok(contents) = std::fs::read(&local_path) {
+            return Ok(contents);
+        }
+        for legacy_path in legacy_asset_paths(relative_path)? {
+            if let Ok(contents) = std::fs::read(legacy_path) {
+                return Ok(contents);
+            }
+        }
+    }
+
+    let url = format!("{ASSET_BASE_URL}/{}", relative_path.trim_start_matches('/'));
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|error| format!("create asset client: {error}"))?
+        .get(url)
+        .send()
+        .map_err(|error| format!("download asset: {error}"))?;
+    if !response.status().is_success() {
+        return Err(format!("download asset: HTTP {}", response.status()));
+    }
+    let bytes = response.bytes().map_err(|error| format!("read asset: {error}"))?.to_vec();
+    let parent = local_path.parent().ok_or_else(|| "asset cache has no parent".to_string())?;
+    std::fs::create_dir_all(parent).map_err(|error| format!("create asset cache: {error}"))?;
+    std::fs::write(&local_path, &bytes).map_err(|error| format!("write asset cache: {error}"))?;
+    Ok(bytes)
 }
 
 fn with_dir(path: &Path, sub: &str) -> Result<PathBuf, String> {
@@ -98,10 +173,62 @@ fn pool_json_exists(pool_id: String) -> bool {
         .unwrap_or(false)
 }
 
+#[tauri::command]
+fn sync_asset_cache(force: bool) -> Result<usize, String> {
+    #[derive(serde::Deserialize)]
+    struct TreeEntry { path: String, #[serde(rename = "type")] kind: String }
+    #[derive(serde::Deserialize)]
+    struct GitTree { tree: Vec<TreeEntry> }
+
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|error| format!("create asset client: {error}"))?;
+    let tree = client
+        .get("https://api.github.com/repos/Thanatosoul/Endfield-Gacha-Assets/git/trees/master?recursive=1")
+        .header(reqwest::header::USER_AGENT, "Endfield-Gacha-Assistant")
+        .send()
+        .map_err(|error| format!("fetch asset manifest: {error}"))?
+        .error_for_status()
+        .map_err(|error| format!("fetch asset manifest: {error}"))?
+        .json::<GitTree>()
+        .map_err(|error| format!("parse asset manifest: {error}"))?;
+
+    let paths = tree.tree.into_iter().filter_map(|entry| {
+        let prefix = "public/";
+        (entry.kind == "blob" && entry.path.starts_with("public/images/"))
+            .then(|| entry.path.trim_start_matches(prefix).to_string())
+    });
+    let mut count = 0;
+    for path in paths {
+        cache_asset(&path, force)?;
+        count += 1;
+    }
+    Ok(count)
+}
+
 // ─── Entrypoint ───────────────────────────────────────────────────
 
 fn main() {
     tauri::Builder::default()
+        .register_asynchronous_uri_scheme_protocol("asset-cache", |_ctx, request, responder| {
+            let relative_path = request.uri().path().trim_start_matches('/').to_string();
+            std::thread::spawn(move || {
+                let response = match cache_asset(&relative_path, false) {
+                    Ok(bytes) => Response::builder()
+                        .header(header::CONTENT_TYPE, content_type(Path::new(&relative_path)))
+                        .header(header::CACHE_CONTROL, "no-store")
+                        .body(bytes)
+                        .unwrap(),
+                    Err(error) => Response::builder()
+                        .status(StatusCode::NOT_FOUND)
+                        .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
+                        .body(error.into_bytes())
+                        .unwrap(),
+                };
+                responder.respond(response);
+            });
+        })
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -115,6 +242,7 @@ fn main() {
             pool_read_json,
             pool_write_json,
             pool_json_exists,
+            sync_asset_cache,
             webdav::webdav_test,
             webdav::webdav_backup,
             webdav::webdav_list_backups,
