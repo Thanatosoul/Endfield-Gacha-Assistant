@@ -94,8 +94,3 @@ export async function fetchRemoteAssets(): Promise<ResourceSyncResult> {
     updatedAt: index.updatedAt,
   };
 }
-
-export function getRemoteAssetUrl(relativePath: string): string {
-  const normalized = relativePath.replace(/^\/+/, '');
-  return `${ASSET_REPOSITORY_URL}/${normalized}`;
-}

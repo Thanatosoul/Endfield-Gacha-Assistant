@@ -27,15 +27,13 @@
     "@tauri-apps/plugin-dialog": "^2.4.0",
     "@tauri-apps/plugin-fs": "^2.4.1",
     "@tauri-apps/plugin-http": "^2.5.0",
-    "@tauri-apps/plugin-opener": "^2.3.0",
     "@tauri-apps/plugin-sql": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "crypto-js": "^4.2.0",
     "lucide-react": "^0.525.0",
     "pako": "^2.1.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.3"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

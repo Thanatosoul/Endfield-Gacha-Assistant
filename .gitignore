@@ -25,3 +25,4 @@ Thumbs.db
 # Portable runtime data and local development artifacts
 data/
 .agent-debug/
+doc/

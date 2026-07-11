@@ -72,7 +72,7 @@ export interface DataContextValue {
   pityGaps: PityGapInfo[];
   pityGapsWpn: PityGapInfo[];
   refresh: (preferredAccountId?: string | null) => Promise<void>;
-  syncAssets: () => Promise<{ pools: number; version: string; updatedAt: string }>;
+  syncAssets: () => Promise<{ pools: number; version: string; updatedAt: string; cacheStarted: boolean }>;
   deleteAccount: (accountId: string) => Promise<void>;
   importBindings: () => Promise<void>;
   exportJson: () => Promise<string | null>;

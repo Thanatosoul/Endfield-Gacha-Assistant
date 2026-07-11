@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { Cloud, Download, RefreshCw } from 'lucide-react';
 import { useData, useTheme } from '@/app/hooks/contexts';
 import { getSecurePreference, saveSecurePreference } from '@/modules/storage/repositories';
@@ -16,6 +17,32 @@ export const SettingsPage = memo(function SettingsPage() {
   const [csvMsg, setCsvMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [assetMsg, setAssetMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [syncingAssets, setSyncingAssets] = useState(false);
+
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+    let unlistenProgress: (() => void) | undefined;
+    let unlistenError: (() => void) | undefined;
+    void Promise.all([
+      listen<{ checked: number; total: number; downloaded: number; skipped: number; failed: number; complete: boolean }>('assets:sync-progress', (event) => {
+        const { checked, total, downloaded, skipped, failed, complete } = event.payload;
+        if (complete) {
+          setSyncingAssets(false);
+          setAssetMsg({ ok: failed === 0, text: `图片同步完成：检查 ${total}，下载 ${downloaded}，跳过 ${skipped}${failed ? `，失败 ${failed}` : ''}` });
+        } else {
+          setSyncingAssets(true);
+          setAssetMsg({ ok: true, text: `正在后台检查图片缓存：${checked}/${total}（下载 ${downloaded}，跳过 ${skipped}）` });
+        }
+      }),
+      listen<string>('assets:sync-error', (event) => {
+        setSyncingAssets(false);
+        setAssetMsg({ ok: false, text: `图片缓存同步失败：${event.payload}` });
+      }),
+    ]).then(([progress, error]) => {
+      unlistenProgress = progress;
+      unlistenError = error;
+    });
+    return () => { unlistenProgress?.(); unlistenError?.(); };
+  }, []);
 
   // WebDAV state
   const [wdavUrl, setWdavUrl] = useState('');
@@ -88,7 +115,12 @@ export const SettingsPage = memo(function SettingsPage() {
     setSyncingAssets(true);
     try {
       const result = await syncAssets();
-      setAssetMsg({ ok: true, text: `已同步 ${result.pools} 个卡池，资源版本 ${result.version}` });
+      setAssetMsg({
+        ok: true,
+        text: result.cacheStarted
+          ? `已检查 ${result.pools} 个卡池，版本 ${result.version}。图片正后台全量检查并增量下载。`
+          : `已检查 ${result.pools} 个卡池，资源版本 ${result.version}；图片缓存任务已在运行。`,
+      });
     } catch (error) {
       setAssetMsg({ ok: false, text: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -177,7 +209,7 @@ export const SettingsPage = memo(function SettingsPage() {
 
           <div className="panel-strong rounded-3xl p-5">
             <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">资源同步</div>
-            <p className="mt-3 text-sm text-muted">应用启动时会检查卡池数据。同步失败时保留上次成功的本地版本。</p>
+            <p className="mt-3 text-sm text-muted">启动时后台检查卡池数据。手动同步会全量检查卡池和图片，但只下载缺失或已变化的图片，不会阻塞使用。</p>
             <ActionBtn onClick={() => void handleSyncAssets()} disabled={syncingAssets}>
               <RefreshCw className={syncingAssets ? 'animate-spin' : ''} />
               {syncingAssets ? '同步中…' : '同步资源'}

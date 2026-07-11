@@ -3,10 +3,21 @@
 mod webdav;
 
 use serde::Serialize;
-use std::path::{Path, PathBuf};
-use tauri::{http::{header, Response, StatusCode}, AppHandle, Emitter, Manager};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
+use tauri::{
+    http::{header, Response, StatusCode},
+    AppHandle, Emitter, Manager, State,
+};
 
-const ASSET_BASE_URL: &str = "https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/master/public";
+const ASSET_BASE_URL: &str =
+    "https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/master/public";
 
 #[derive(Clone, Serialize)]
 struct AppPaths {
@@ -29,13 +40,51 @@ fn pool_data_root() -> Result<PathBuf, String> {
     Ok(resolve_portable_data_dir()?.join("pool"))
 }
 
+struct AssetSyncState(Arc<AtomicBool>);
+
+#[derive(Clone, Serialize)]
+struct AssetSyncProgress {
+    checked: usize,
+    total: usize,
+    downloaded: usize,
+    skipped: usize,
+    failed: usize,
+    complete: bool,
+}
+
+#[derive(Serialize)]
+struct AssetSyncStart {
+    started: bool,
+}
+
+#[derive(serde::Deserialize)]
+struct TreeEntry {
+    path: String,
+    sha: String,
+    #[serde(rename = "type")]
+    kind: String,
+}
+
+#[derive(serde::Deserialize)]
+struct GitTree {
+    tree: Vec<TreeEntry>,
+}
+
 fn asset_cache_root() -> Result<PathBuf, String> {
     Ok(resolve_portable_data_dir()?.join("assets"))
 }
 
+fn asset_manifest_path() -> Result<PathBuf, String> {
+    Ok(asset_cache_root()?.join("manifest.json"))
+}
+
 fn safe_asset_path(relative_path: &str) -> Result<PathBuf, String> {
     let path = Path::new(relative_path);
-    if path.is_absolute() || path.components().any(|part| matches!(part, std::path::Component::ParentDir)) {
+    if path.is_absolute()
+        || path
+            .components()
+            .any(|part| matches!(part, std::path::Component::ParentDir))
+    {
         return Err("invalid asset path".to_string());
     }
     Ok(asset_cache_root()?.join(path))
@@ -48,16 +97,37 @@ fn legacy_asset_paths(relative_path: &str) -> Result<Vec<PathBuf>, String> {
         data_dir.join("pool").join(relative),
         data_dir.join("pool").join("source").join(relative),
     ];
-    let file_name = relative.file_name().ok_or_else(|| "invalid asset path".to_string())?;
+    let file_name = relative
+        .file_name()
+        .ok_or_else(|| "invalid asset path".to_string())?;
     if relative.starts_with("images/character") {
         paths.push(data_dir.join("pool").join("character").join(file_name));
-        paths.push(data_dir.join("pool").join("source").join("character").join(file_name));
+        paths.push(
+            data_dir
+                .join("pool")
+                .join("source")
+                .join("character")
+                .join(file_name),
+        );
     } else if relative.starts_with("images/weapon") {
         paths.push(data_dir.join("pool").join("weapon").join(file_name));
-        paths.push(data_dir.join("pool").join("source").join("weapon").join(file_name));
+        paths.push(
+            data_dir
+                .join("pool")
+                .join("source")
+                .join("weapon")
+                .join(file_name),
+        );
     } else if relative.starts_with("images/banner") {
         paths.push(data_dir.join("pool").join("background").join(file_name));
-        paths.push(data_dir.join("pool").join("source").join("pool").join("background").join(file_name));
+        paths.push(
+            data_dir
+                .join("pool")
+                .join("source")
+                .join("pool")
+                .join("background")
+                .join(file_name),
+        );
     }
     Ok(paths)
 }
@@ -95,8 +165,13 @@ fn cache_asset(relative_path: &str, refresh: bool) -> Result<Vec<u8>, String> {
     if !response.status().is_success() {
         return Err(format!("download asset: HTTP {}", response.status()));
     }
-    let bytes = response.bytes().map_err(|error| format!("read asset: {error}"))?.to_vec();
-    let parent = local_path.parent().ok_or_else(|| "asset cache has no parent".to_string())?;
+    let bytes = response
+        .bytes()
+        .map_err(|error| format!("read asset: {error}"))?
+        .to_vec();
+    let parent = local_path
+        .parent()
+        .ok_or_else(|| "asset cache has no parent".to_string())?;
     std::fs::create_dir_all(parent).map_err(|error| format!("create asset cache: {error}"))?;
     std::fs::write(&local_path, &bytes).map_err(|error| format!("write asset cache: {error}"))?;
     Ok(bytes)
@@ -104,8 +179,7 @@ fn cache_asset(relative_path: &str, refresh: bool) -> Result<Vec<u8>, String> {
 
 fn with_dir(path: &Path, sub: &str) -> Result<PathBuf, String> {
     let d = path.join(sub);
-    std::fs::create_dir_all(&d)
-        .map_err(|e| format!("mkdir {}: {e}", d.display()))?;
+    std::fs::create_dir_all(&d).map_err(|e| format!("mkdir {}: {e}", d.display()))?;
     Ok(d)
 }
 
@@ -118,7 +192,9 @@ fn app_paths() -> Result<AppPaths, String> {
         .map_err(|error| format!("failed to create app data dir: {error}"))?;
 
     // Clean up legacy artifacts
-    let exe_dir = data_dir.parent().ok_or_else(|| "no parent of data dir".to_string())?;
+    let exe_dir = data_dir
+        .parent()
+        .ok_or_else(|| "no parent of data dir".to_string())?;
     for legacy_dir in &[
         exe_dir.join("source"),
         exe_dir.join("pool"),
@@ -130,8 +206,14 @@ fn app_paths() -> Result<AppPaths, String> {
         }
     }
 
-    let database_url = format!("sqlite:{}", data_dir.join("endfield-gacha-assistant.db").display());
-    Ok(AppPaths { data_dir: data_dir.display().to_string(), database_url })
+    let database_url = format!(
+        "sqlite:{}",
+        data_dir.join("endfield-gacha-assistant.db").display()
+    );
+    Ok(AppPaths {
+        data_dir: data_dir.display().to_string(),
+        database_url,
+    })
 }
 
 #[tauri::command]
@@ -155,7 +237,9 @@ fn pool_source_dir() -> Result<String, String> {
 
 #[tauri::command]
 fn pool_read_json(pool_id: String) -> Result<String, String> {
-    let path = pool_data_root()?.join("data").join(format!("{pool_id}.json"));
+    let path = pool_data_root()?
+        .join("data")
+        .join(format!("{pool_id}.json"));
     std::fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))
 }
 
@@ -173,13 +257,7 @@ fn pool_json_exists(pool_id: String) -> bool {
         .unwrap_or(false)
 }
 
-#[tauri::command]
-fn sync_asset_cache(force: bool) -> Result<usize, String> {
-    #[derive(serde::Deserialize)]
-    struct TreeEntry { path: String, #[serde(rename = "type")] kind: String }
-    #[derive(serde::Deserialize)]
-    struct GitTree { tree: Vec<TreeEntry> }
-
+fn sync_asset_cache_task(app: &AppHandle) -> Result<(), String> {
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
         .build()
@@ -194,29 +272,98 @@ fn sync_asset_cache(force: bool) -> Result<usize, String> {
         .json::<GitTree>()
         .map_err(|error| format!("parse asset manifest: {error}"))?;
 
-    let paths = tree.tree.into_iter().filter_map(|entry| {
-        let prefix = "public/";
-        (entry.kind == "blob" && entry.path.starts_with("public/images/"))
-            .then(|| entry.path.trim_start_matches(prefix).to_string())
-    });
-    let mut count = 0;
-    for path in paths {
-        cache_asset(&path, force)?;
-        count += 1;
+    let entries = tree
+        .tree
+        .into_iter()
+        .filter_map(|entry| {
+            let prefix = "public/";
+            (entry.kind == "blob" && entry.path.starts_with("public/images/"))
+                .then(|| (entry.path.trim_start_matches(prefix).to_string(), entry.sha))
+        })
+        .collect::<Vec<_>>();
+    let manifest_path = asset_manifest_path()?;
+    let mut manifest = std::fs::read_to_string(&manifest_path)
+        .ok()
+        .and_then(|content| serde_json::from_str::<HashMap<String, String>>(&content).ok())
+        .unwrap_or_default();
+    let mut progress = AssetSyncProgress {
+        checked: 0,
+        total: entries.len(),
+        downloaded: 0,
+        skipped: 0,
+        failed: 0,
+        complete: false,
+    };
+    let _ = app.emit("assets:sync-progress", progress.clone());
+
+    for (path, sha) in entries {
+        progress.checked += 1;
+        let local_exists = safe_asset_path(&path)?.exists();
+        if local_exists
+            && manifest
+                .get(&path)
+                .is_none_or(|cached_sha| cached_sha == &sha)
+        {
+            manifest.insert(path, sha);
+            progress.skipped += 1;
+        } else {
+            match cache_asset(&path, true) {
+                Ok(_) => {
+                    manifest.insert(path, sha);
+                    progress.downloaded += 1;
+                }
+                Err(_) => progress.failed += 1,
+            }
+        }
+        if progress.checked % 5 == 0 || progress.checked == progress.total {
+            let _ = app.emit("assets:sync-progress", progress.clone());
+        }
     }
-    Ok(count)
+    let parent = manifest_path
+        .parent()
+        .ok_or_else(|| "asset manifest has no parent".to_string())?;
+    std::fs::create_dir_all(parent).map_err(|error| format!("create asset manifest: {error}"))?;
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec(&manifest)
+            .map_err(|error| format!("serialize asset manifest: {error}"))?,
+    )
+    .map_err(|error| format!("write asset manifest: {error}"))?;
+    progress.complete = true;
+    let _ = app.emit("assets:sync-progress", progress);
+    Ok(())
+}
+
+#[tauri::command]
+fn sync_asset_cache(app: AppHandle, state: State<'_, AssetSyncState>) -> AssetSyncStart {
+    if state.0.swap(true, Ordering::AcqRel) {
+        return AssetSyncStart { started: false };
+    }
+    let syncing = state.0.clone();
+    std::thread::spawn(move || {
+        let result = sync_asset_cache_task(&app);
+        if let Err(error) = result {
+            let _ = app.emit("assets:sync-error", error);
+        }
+        syncing.store(false, Ordering::Release);
+    });
+    AssetSyncStart { started: true }
 }
 
 // ─── Entrypoint ───────────────────────────────────────────────────
 
 fn main() {
     tauri::Builder::default()
+        .manage(AssetSyncState(Arc::new(AtomicBool::new(false))))
         .register_asynchronous_uri_scheme_protocol("asset-cache", |_ctx, request, responder| {
             let relative_path = request.uri().path().trim_start_matches('/').to_string();
             std::thread::spawn(move || {
                 let response = match cache_asset(&relative_path, false) {
                     Ok(bytes) => Response::builder()
-                        .header(header::CONTENT_TYPE, content_type(Path::new(&relative_path)))
+                        .header(
+                            header::CONTENT_TYPE,
+                            content_type(Path::new(&relative_path)),
+                        )
                         .header(header::CACHE_CONTROL, "no-store")
                         .body(bytes)
                         .unwrap(),
@@ -232,7 +379,6 @@ fn main() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::default().build())
         .invoke_handler(tauri::generate_handler![

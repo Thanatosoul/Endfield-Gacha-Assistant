@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GameAccount, GachaRecord, PoolMetadata } from '@/domain/types';
 import { seedMetadata } from '@/modules/metadata/catalog';
 import {
@@ -43,6 +43,7 @@ export function useDataState(input: DataBootInput): DataContextValue {
   const [storageState] = useState(input.initialStorageState);
   const [pathsLabel] = useState(input.initialPathsLabel);
   const [resourceVersion, setResourceVersion] = useState(input.initialResourceVersion);
+  const autoSyncStarted = useRef(false);
 
   const metadataIndex = useMemo(() => {
     const map = new Map<string, PoolMetadata>();
@@ -90,18 +91,22 @@ export function useDataState(input: DataBootInput): DataContextValue {
     await saveMetadataSnapshot(result.metadata);
     await savePreference(RESOURCE_VERSION_KEY, result.version);
     const versionChanged = result.version !== resourceVersion;
+    let cacheStarted = false;
     if (isTauriRuntime() && (forceImageRefresh || versionChanged)) {
-      await invoke<number>('sync_asset_cache', { force: forceImageRefresh });
+      const cacheTask = await invoke<{ started: boolean }>('sync_asset_cache');
+      cacheStarted = cacheTask.started;
     }
     setMetadata(result.metadata);
     setResourceVersion(result.version);
     await Promise.allSettled(result.metadata.map((pool) => ensurePoolScaffold(pool)));
-    return { pools: result.metadata.length, version: result.version, updatedAt: result.updatedAt };
+    return { pools: result.metadata.length, version: result.version, updatedAt: result.updatedAt, cacheStarted };
   }, [resourceVersion]);
 
   const syncAssets = useCallback(() => syncRemoteAssets(true), [syncRemoteAssets]);
 
   useEffect(() => {
+    if (autoSyncStarted.current) return;
+    autoSyncStarted.current = true;
     void syncRemoteAssets(false).catch(() => {
       // Startup synchronization is intentionally non-blocking; the local snapshot remains active.
     });

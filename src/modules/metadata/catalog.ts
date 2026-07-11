@@ -46,7 +46,3 @@ export const seedMetadata: PoolMetadata[] = [
     version: '0.1.0',
   },
 ];
-
-export function buildMetadataIndex(metadata: PoolMetadata[]): Map<string, PoolMetadata> {
-  return new Map(metadata.map((entry) => [entry.pool_id, entry]));
-}
