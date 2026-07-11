@@ -9,6 +9,19 @@ export function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && typeof window.__TAURI_INTERNALS__ !== 'undefined' && window.__TAURI_INTERNALS__ !== null;
 }
 
+export async function getAppVersion(fallbackVersion = '0.1.0'): Promise<string> {
+  if (!isTauriRuntime()) {
+    return fallbackVersion;
+  }
+
+  try {
+    const { getVersion } = await import('@tauri-apps/api/app');
+    return await getVersion();
+  } catch {
+    return fallbackVersion;
+  }
+}
+
 export function getAssetUrl(relativePath: string): string {
   const normalized = relativePath.replace(/^\/source\//, '');
   const mapped = normalized

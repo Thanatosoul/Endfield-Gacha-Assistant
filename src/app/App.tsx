@@ -21,7 +21,7 @@ import { useAuthState } from '@/app/hooks/useAuth';
 import { useDataState } from '@/app/hooks/useData';
 import { useSyncState } from '@/app/hooks/useSync';
 import { useBootstrap, type BootstrapResult } from '@/app/hooks/useBootstrap';
-import { isTauriRuntime } from '@/lib/runtime';
+import { getAppVersion, isTauriRuntime } from '@/lib/runtime';
 
 type PageKey = 'statistics' | 'characterPools' | 'weaponPools' | 'records' | 'accounts' | 'checkin' | 'settings' | 'about';
 type NavItem = { key: PageKey; label: string; icon: ReactNode };
@@ -113,6 +113,7 @@ function AppContent() {
   const { accounts, activeAccountId, summary, poolSummaries, pityGaps, pityGapsWpn, records, resourceVersion } = useData();
   const [page, setPage] = useState<PageKey>('statistics');
   const [now, setNow] = useState(new Date());
+  const [appVersion, setAppVersion] = useState<string>(__APP_VERSION__);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -122,6 +123,19 @@ function AppContent() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const version = await getAppVersion(__APP_VERSION__);
+      if (active) {
+        setAppVersion(version);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const autoUpdateRef = useRef(false);
   useEffect(() => {
@@ -213,7 +227,7 @@ function AppContent() {
               <span className="truncate">{activeAccount ? activeAccount.nickname : '未选择账号'}</span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted">
-              <span>程序版本</span><span className="text-right font-mono text-[color:var(--text-main)]">v{__APP_VERSION__}</span>
+              <span>程序版本</span><span className="text-right font-mono text-[color:var(--text-main)]">v{appVersion}</span>
               <span>资源版本</span><span className="text-right font-mono text-[color:var(--text-main)]">{resourceVersion === '未同步' ? resourceVersion : `v${resourceVersion}`}</span>
             </div>
             <div className="mt-3 space-y-1 text-xs text-muted">
