@@ -20,67 +20,71 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadPool();
-  }, [poolId]);
-  async function loadPool() {
-    try {
-      setLoading(true);
-      setError(null);
+    let cancelled = false;
 
-      // 首先从应用元数据中查找
-      const poolFromMetadata = metadata.find((m) => m.pool_id === poolId);
+    async function loadPool() {
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (poolFromMetadata) {
-        let nextPool = poolFromMetadata;
-        const parsed = await readPoolJsonMerged(poolId);
-        nextPool = {
-          ...nextPool,
-          pool_name: parsed?.poolName ?? nextPool.pool_name,
-          up6_name: parsed?.up6Name ?? nextPool.up6_name,
-        };
-        await ensurePoolScaffold(nextPool);
-        setPool(nextPool);
-      } else {
-        // 如果没找到，尝试从数据库查询
-        const data = await getPoolMetadata(poolId);
-        if (data) {
-          setPool(data);
-        } else {
-          // 如果数据库也没有，创建新的元数据模板
-          // 从 poolSummaries 中找到对应的池子信息
-          const poolSummary = poolSummaries.find((p) => p.poolId === poolId);
+        // 首先从应用元数据中查找
+        const poolFromMetadata = metadata.find((m) => m.pool_id === poolId);
 
-          if (!poolSummary) {
-            setError(`卡池未找到: ${poolId}`);
-            return;
-          }
-
-          // 创建新的元数据模板
-          const newPool: PoolMetadata = {
-            pool_id: poolId,
-            category: poolSummary.category,
-            pool_type: poolSummary.category === 'character' ? 'special_character' : 'special_weapon',
-            pool_name: poolName ?? poolSummary.poolName,
-            up6_name: '',
-            up5_names: [],
-            items: [],
-            valid_from: 0,
-            valid_to: 0,
-            version: '1.0.0',
-          };
+        if (poolFromMetadata) {
+          let nextPool = poolFromMetadata;
           const parsed = await readPoolJsonMerged(poolId);
-          newPool.pool_name = parsed?.poolName ?? newPool.pool_name;
-          newPool.up6_name = parsed?.up6Name ?? newPool.up6_name;
-          await ensurePoolScaffold(newPool);
-          setPool(newPool);
+          nextPool = {
+            ...nextPool,
+            pool_name: parsed?.poolName ?? nextPool.pool_name,
+            up6_name: parsed?.up6Name ?? nextPool.up6_name,
+          };
+          await ensurePoolScaffold(nextPool);
+          if (!cancelled) setPool(nextPool);
+        } else {
+          // 如果没找到，尝试从数据库查询
+          const data = await getPoolMetadata(poolId);
+          if (data) {
+            if (!cancelled) setPool(data);
+          } else {
+            // 如果数据库也没有，创建新的元数据模板
+            // 从 poolSummaries 中找到对应的池子信息
+            const poolSummary = poolSummaries.find((p) => p.poolId === poolId);
+
+            if (!poolSummary) {
+              if (!cancelled) setError(`卡池未找到: ${poolId}`);
+              return;
+            }
+
+            // 创建新的元数据模板
+            const newPool: PoolMetadata = {
+              pool_id: poolId,
+              category: poolSummary.category,
+              pool_type: poolSummary.category === 'character' ? 'special_character' : 'special_weapon',
+              pool_name: poolName ?? poolSummary.poolName,
+              up6_name: '',
+              up5_names: [],
+              items: [],
+              valid_from: 0,
+              valid_to: 0,
+              version: '1.0.0',
+            };
+            const parsed = await readPoolJsonMerged(poolId);
+            newPool.pool_name = parsed?.poolName ?? newPool.pool_name;
+            newPool.up6_name = parsed?.up6Name ?? newPool.up6_name;
+            await ensurePoolScaffold(newPool);
+            if (!cancelled) setPool(newPool);
+          }
         }
+      } catch (err) {
+        if (!cancelled) setError(String(err));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setLoading(false);
     }
-  }
+
+    void loadPool();
+    return () => { cancelled = true; };
+  }, [metadata, poolId, poolName, poolSummaries]);
 
   async function handleSave() {
     if (!pool) return;

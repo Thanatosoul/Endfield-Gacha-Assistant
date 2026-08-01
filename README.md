@@ -54,7 +54,7 @@
 
 ### 技术栈
 
-- **前端**: React 19 + TypeScript + Vite 7 + Tailwind CSS 4 + React Router 7
+- **前端**: React 19 + TypeScript + Vite 7 + Tailwind CSS 4
 - **后端**: Tauri v2 (Rust) + SQLite (via `tauri-plugin-sql`)
 - **桌面 API**: Tauri 插件 (dialog / fs / http / opener / updater)
 - **加密**: CryptoJS (AES-256-CBC) + 设备指纹
