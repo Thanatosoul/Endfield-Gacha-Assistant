@@ -9,6 +9,7 @@ import {
   importRecordsFromCsvFile,
 } from '@/modules/import-export/service';
 import { saveAccountsFromBindings } from '@/modules/storage/accounts';
+import { saveCheckInToken } from '@/modules/skland-checkin/config';
 import { listAccounts, listMetadata, listRecordsByAccount } from '@/modules/storage/queries';
 import { deleteAccountCascade, savePreference, saveMetadataSnapshot } from '@/modules/storage/repositories';
 import { summarizePools, summarizeRecords, selectFeaturedPools, computePityGaps } from '@/modules/stats-engine/summary';
@@ -34,7 +35,7 @@ interface DataBootInput {
 
 export function useDataState(input: DataBootInput): DataContextValue {
   const { pushNotification } = useNotifications();
-  const { bindings } = useAuth();
+  const { bindings, token } = useAuth();
 
   const [accounts, setAccounts] = useState<GameAccount[]>(input.initialAccounts);
   const [activeAccountId, setActiveAccountIdState] = useState<string | null>(input.initialActiveAccountId);
@@ -125,10 +126,14 @@ export function useDataState(input: DataBootInput): DataContextValue {
 
   const importBindings = useCallback(async () => {
     const imported = await saveAccountsFromBindings(bindings);
+    await Promise.all(
+      [...new Set(imported.map((account) => account.hg_uid))]
+        .map((hgUid) => saveCheckInToken(hgUid, token)),
+    );
     await refresh();
     if (!activeAccountId && imported[0]) await setActiveAccountId(imported[0].id);
     pushNotification('success', '导入完成', `已更新 ${imported.length} 个本地账号。`);
-  }, [bindings, refresh, activeAccountId, setActiveAccountId, pushNotification]);
+  }, [bindings, token, refresh, activeAccountId, setActiveAccountId, pushNotification]);
 
   const exportJson = useCallback(async () => {
     const filePath = await exportSnapshotToJsonFile();

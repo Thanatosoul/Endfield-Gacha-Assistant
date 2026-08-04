@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CalendarCheck, Check } from 'lucide-react';
-import { useData, useAuth } from '@/app/hooks/contexts';
+import { useData } from '@/app/hooks/contexts';
 import { performCheckIn, type CheckInUserResult } from '@/modules/skland-checkin/service';
-import { getCheckInConfig, saveCheckInLastResults, type CheckInConfig, type CheckInConfigLastResult } from '@/modules/skland-checkin/config';
+import { getCheckInConfig, getCheckInToken, saveCheckInLastResults, type CheckInConfig, type CheckInConfigLastResult } from '@/modules/skland-checkin/config';
 
 interface AccountCheckInState {
   hgUid: string;
@@ -15,7 +15,6 @@ interface AccountCheckInState {
 
 export function CheckInPage() {
   const { accounts } = useData();
-  const { token } = useAuth();
   const [checkInStates, setCheckInStates] = useState<AccountCheckInState[]>([]);
   const [batchChecking, setBatchChecking] = useState(false);
 
@@ -50,15 +49,12 @@ export function CheckInPage() {
   const handleSingleCheckIn = async (index: number) => {
     const state = checkInStates[index];
     if (!state) return;
-    if (!token.trim()) {
-      setCheckInStates((prev) => prev.map((s, i) => (i === index ? { ...s, checking: false, error: '请先在账号页面设置 Token' } : s)));
-      return;
-    }
-
     const now = Date.now();
     setCheckInStates((prev) => prev.map((s, i) => (i === index ? { ...s, checking: true, error: null, results: null } : s)));
 
     try {
+      const token = await getCheckInToken(state.hgUid);
+      if (!token) throw new Error('未找到此账号的签到 Token，请在账号页面重新启用签到。');
       const results = await performCheckIn(token);
       const lastResults: CheckInConfigLastResult[] = [];
       for (const user of results) {

@@ -275,7 +275,7 @@ export const AccountsPage = memo(function AccountsPage() {
                       {hasConfig && cfg && ' · 已启用'}
                     </p>
                     <p className="mt-2 text-xs text-muted">
-                      签到将使用上方「官方 Token」对所有已绑定的游戏进行每日签到。
+                      签到使用导入此账号时认证的官方 Token。
                     </p>
 
                     <div className="mt-3 flex flex-wrap gap-2">

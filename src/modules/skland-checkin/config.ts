@@ -1,5 +1,5 @@
 import { getPreference } from '@/modules/storage/queries';
-import { savePreference } from '@/modules/storage/repositories';
+import { getSecurePreference, savePreference, saveSecurePreference } from '@/modules/storage/repositories';
 
 export interface CheckInConfig {
   lastCheckInAt: number | null;
@@ -17,6 +17,10 @@ export interface CheckInConfigLastResult {
 
 function makeKey(hgUid: string, suffix: string): string {
   return `checkin.${suffix}.${hgUid}`;
+}
+
+function makeTokenKey(hgUid: string): string {
+  return makeKey(hgUid, 'token');
 }
 
 export async function getCheckInConfig(hgUid: string): Promise<CheckInConfig | null> {
@@ -41,6 +45,16 @@ export async function enableCheckInConfig(hgUid: string): Promise<void> {
   await savePreference(makeKey(hgUid, 'last'), '[]');
 }
 
+export async function saveCheckInToken(hgUid: string, token: string): Promise<void> {
+  if (!hgUid || !hgUid.trim() || !token.trim()) return;
+  await saveSecurePreference(makeTokenKey(hgUid), token.trim());
+}
+
+export async function getCheckInToken(hgUid: string): Promise<string | null> {
+  if (!hgUid || !hgUid.trim()) return null;
+  return getSecurePreference(makeTokenKey(hgUid));
+}
+
 export async function saveCheckInLastResults(
   hgUid: string,
   results: CheckInConfigLastResult[],
@@ -49,5 +63,6 @@ export async function saveCheckInLastResults(
 }
 
 export async function deleteCheckInConfig(hgUid: string): Promise<void> {
+  await saveSecurePreference(makeTokenKey(hgUid), '');
   await savePreference(makeKey(hgUid, 'last'), '');
 }
