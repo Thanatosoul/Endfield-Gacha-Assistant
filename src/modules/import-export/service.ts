@@ -8,6 +8,7 @@ import { listAccounts, listMetadata, listRecordsByAccount } from '@/modules/stor
 import { getDatabase } from '@/modules/storage/database';
 import { upsertGameAccount, upsertGachaRecords, saveMetadataSnapshot, saveSecurePreference } from '@/modules/storage/repositories';
 import { dedupeRecords } from '@/modules/storage/normalize';
+import { assignFallbackPoolOrders, assignImportedPoolOrders } from '@/modules/storage/record-order';
 
 function withBom(text: string): string {
   return `\uFEFF${text}`;
@@ -132,7 +133,7 @@ export async function importSnapshotFromJsonFile(): Promise<{
   // ─── Legacy format (EndfieldGachaHelper schemaVersion) ───
   if (isLegacySnapshot(raw)) {
     const adapted = adaptLegacySnapshot(raw);
-    const deduped = dedupeRecords(adapted.records);
+    const deduped = assignImportedPoolOrders(dedupeRecords(adapted.records));
 
     for (const account of adapted.accounts) {
       await upsertGameAccount(account, db);
@@ -154,7 +155,7 @@ export async function importSnapshotFromJsonFile(): Promise<{
   for (const account of snapshot.accounts ?? []) {
     await upsertGameAccount(account, db);
   }
-  await upsertGachaRecords(snapshot.records ?? [], db);
+  await upsertGachaRecords(assignImportedPoolOrders(snapshot.records ?? []), db);
   await saveMetadataSnapshot(snapshot.metadata ?? [], db);
 
   // Restore tokens if present
@@ -222,6 +223,6 @@ export async function importRecordsFromCsvFile(): Promise<number> {
   if (records.length === 0) return 0;
 
   const db = await getDatabase();
-  await upsertGachaRecords(records, db);
+  await upsertGachaRecords(assignFallbackPoolOrders(records), db);
   return records.length;
 }

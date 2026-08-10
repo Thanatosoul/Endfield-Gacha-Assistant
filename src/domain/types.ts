@@ -18,6 +18,8 @@ export interface GachaRecord {
   weapon_type: string | null;
   gacha_ts: number;
   seq_id: string;
+  /** Increasing chronological position within account, category, and pool. */
+  pool_order: number;
   fetched_at: number;
 }
 

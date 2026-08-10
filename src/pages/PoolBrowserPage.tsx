@@ -5,6 +5,7 @@ import type { GachaCategory, GachaRecord } from '@/domain/types';
 import type { PoolSummary } from '@/modules/stats-engine/summary';
 import { RarityDonut } from '@/components/RarityDonut';
 import { PullTimeline } from '@/components/PullTimeline';
+import { compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
 import { PoolEditModal } from '@/pages/PoolEditModal';
 import { useData } from '@/app/hooks/contexts';
 import { rarityTextClass } from '@/lib/rarity-utils';
@@ -255,7 +256,7 @@ const PoolBannerCard = memo(function PoolBannerCard({
   const up6Name = meta?.up6_name?.trim() ?? '';
 
   const cardStats = useMemo(() => {
-    const sorted = [...poolRecords].sort((a, b) => a.gacha_ts - b.gacha_ts);
+    const sorted = [...poolRecords].sort(compareRecordsChronologically);
     const uniqueUp6: GachaRecord[] = [];
     const uniqueNonUp6: GachaRecord[] = [];
     const uniqueFive: GachaRecord[] = [];
@@ -407,7 +408,7 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
   onClose: () => void;
 }) {
   const { metadataIndex } = useData();
-  const sorted = useMemo(() => [...records].sort((a, b) => b.gacha_ts - a.gacha_ts), [records]);
+  const sorted = useMemo(() => [...records].sort(compareRecordsNewestFirst), [records]);
   const poolMeta = metadataIndex.get(pool.poolId);
 
   return (

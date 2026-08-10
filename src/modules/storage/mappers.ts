@@ -23,6 +23,7 @@ export function mapOfficialCharacterRecord(account: GameAccount, record: Officia
     weapon_type: null,
     gacha_ts: Number(record.gachaTs),
     seq_id: record.seqId,
+    pool_order: 0,
     fetched_at: Date.now(),
   };
 }
@@ -44,6 +45,7 @@ export function mapOfficialWeaponRecord(account: GameAccount, record: OfficialWe
     weapon_type: record.weaponType,
     gacha_ts: Number(record.gachaTs),
     seq_id: record.seqId,
+    pool_order: 0,
     fetched_at: Date.now(),
   };
 }

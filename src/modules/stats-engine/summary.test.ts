@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GachaRecord, PoolMetadata } from '@/domain/types';
-import { calculateCurrentPity, judgeIsUp, summarizeRecords } from '@/modules/stats-engine/summary';
+import { calculateCurrentPity, computePityGaps, judgeIsUp, summarizeRecords } from '@/modules/stats-engine/summary';
 
 const metadata: PoolMetadata = {
   pool_id: 'special_launch_001',
@@ -32,6 +32,7 @@ function record(overrides: Partial<GachaRecord>): GachaRecord {
     weapon_type: null,
     gacha_ts: 0,
     seq_id: overrides.seq_id ?? Math.random().toString(),
+    pool_order: 0,
     fetched_at: 0,
     ...overrides,
   };
@@ -68,5 +69,26 @@ describe('stats summary', () => {
     expect(summary.featuredSixStarHits).toBe(1);
     expect(summary.offBannerSixStarHits).toBe(1);
     expect(summary.latestSixStar?.item_name).toBe('Perlica');
+  });
+
+  it('uses pool order instead of timestamps for records in the same pool', () => {
+    const records = [
+      record({ record_uid: 'newest', seq_id: '900', pool_order: 3, rarity: 3, gacha_ts: 1_000 }),
+      record({ record_uid: 'six', seq_id: '901', pool_order: 2, rarity: 6, gacha_ts: 1_000, item_name: 'Perlica' }),
+      record({ record_uid: 'oldest', seq_id: '902', pool_order: 1, rarity: 4, gacha_ts: 1_000 }),
+    ];
+
+    expect(calculateCurrentPity(records)).toBe(1);
+    expect(computePityGaps(records)).toEqual([{ gap: 2, record: records[1] }]);
+  });
+
+  it('calculates current pity only within the latest pool', () => {
+    const records = [
+      record({ record_uid: 'latest-pool', pool_id: 'special_2', pool_order: 2, rarity: 3, gacha_ts: 2_000 }),
+      record({ record_uid: 'latest-six', pool_id: 'special_2', pool_order: 1, rarity: 6, gacha_ts: 2_000 }),
+      record({ record_uid: 'other-pool', pool_id: 'special_1', pool_order: 10, rarity: 3, gacha_ts: 1_000 }),
+    ];
+
+    expect(calculateCurrentPity(records)).toBe(1);
   });
 });

@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import type { GachaRecord, PoolMetadata } from '@/domain/types';
 import { getAssetUrl } from '@/lib/runtime';
 import { judgeIsUp } from '@/modules/stats-engine/summary';
+import { compareRecordsChronologically } from '@/modules/storage/record-order';
 
 interface TimelineMarker {
   paidIndex: number;
@@ -16,7 +17,7 @@ interface PullTimelineProps {
 
 export const PullTimeline = memo(function PullTimeline({ records, metadata }: PullTimelineProps) {
   const { totalPaid, markers, fivePositions } = useMemo(() => {
-    const sorted = [...records].sort((a, b) => a.gacha_ts - b.gacha_ts);
+    const sorted = [...records].sort(compareRecordsChronologically);
     let paidCount = 0;
     const markers: TimelineMarker[] = [];
     const fivePositions: number[] = [];

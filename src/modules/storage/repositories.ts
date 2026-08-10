@@ -41,7 +41,9 @@ export async function upsertGachaRecords(records: GachaRecord[], database?: Data
   const deduped = dedupeRecords(records);
   if (deduped.length === 0) return 0;
 
-  const placeholders = deduped.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+  const poolOrders = await assignMissingPoolOrders(deduped, db);
+
+  const placeholders = deduped.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
   const params: unknown[] = [];
   for (const record of deduped) {
     params.push(
@@ -60,6 +62,7 @@ export async function upsertGachaRecords(records: GachaRecord[], database?: Data
       record.weapon_type,
       record.gacha_ts,
       record.seq_id,
+      poolOrders.get(record.record_uid) ?? record.pool_order,
       record.fetched_at,
     );
   }
@@ -67,7 +70,7 @@ export async function upsertGachaRecords(records: GachaRecord[], database?: Data
   const result = await db.execute(
     `INSERT OR IGNORE INTO gacha_records (
       record_uid, account_id, region, category, pool_type, pool_id, pool_name,
-      item_id, item_name, rarity, is_new, is_free, weapon_type, gacha_ts, seq_id, fetched_at
+      item_id, item_name, rarity, is_new, is_free, weapon_type, gacha_ts, seq_id, pool_order, fetched_at
     ) VALUES ${placeholders}`,
     params,
   );
@@ -76,7 +79,38 @@ export async function upsertGachaRecords(records: GachaRecord[], database?: Data
 
 export async function listGachaRecords(database?: Database): Promise<GachaRecord[]> {
   const db = await resolveDatabase(database);
-  return db.select<GachaRecord[]>('SELECT * FROM gacha_records ORDER BY gacha_ts DESC, seq_id DESC');
+  return db.select<GachaRecord[]>('SELECT * FROM gacha_records ORDER BY account_id, category, pool_id, pool_order DESC');
+}
+
+async function assignMissingPoolOrders(records: GachaRecord[], db: Database): Promise<Map<string, number>> {
+  const assigned = new Map<string, number>();
+  const byPool = new Map<string, GachaRecord[]>();
+
+  for (const record of records) {
+    if (record.pool_order > 0) continue;
+    const key = `${record.account_id}\u0000${record.category}\u0000${record.pool_id}`;
+    const poolRecords = byPool.get(key);
+    if (poolRecords) poolRecords.push(record);
+    else byPool.set(key, [record]);
+  }
+
+  for (const poolRecords of byPool.values()) {
+    const first = poolRecords[0];
+    if (!first) continue;
+    const rows = await db.select<Array<{ max_order: number | null }>>(
+      'SELECT MAX(pool_order) AS max_order FROM gacha_records WHERE account_id = ? AND category = ? AND pool_id = ?',
+      [first.account_id, first.category, first.pool_id],
+    );
+    const maxOrder = Number(rows[0]?.max_order ?? 0);
+
+    // The official API lists newest records first; reverse so pool_order increases chronologically.
+    for (let index = poolRecords.length - 1; index >= 0; index -= 1) {
+      const record = poolRecords[index];
+      if (record) assigned.set(record.record_uid, maxOrder + poolRecords.length - index);
+    }
+  }
+
+  return assigned;
 }
 
 export async function clearGachaRecordsByAccount(accountId: string, database?: Database): Promise<void> {

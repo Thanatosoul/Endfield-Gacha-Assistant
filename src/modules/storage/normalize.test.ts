@@ -18,6 +18,7 @@ const baseRecord: GachaRecord = {
   weapon_type: null,
   gacha_ts: 1,
   seq_id: '1001',
+  pool_order: 1,
   fetched_at: 2,
 };
 

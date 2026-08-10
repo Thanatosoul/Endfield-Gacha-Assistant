@@ -17,6 +17,7 @@ const CSV_HEADERS: Array<keyof GachaRecord> = [
   'weapon_type',
   'gacha_ts',
   'seq_id',
+  'pool_order',
   'fetched_at',
 ];
 
@@ -136,6 +137,7 @@ export function validateRecord(input: unknown): GachaRecord {
     weapon_type: typeof candidate.weapon_type === 'string' && candidate.weapon_type.length > 0 ? candidate.weapon_type : null,
     gacha_ts: asTimestamp(candidate.gacha_ts, 'gacha_ts'),
     seq_id: asRequiredString(candidate.seq_id, 'seq_id'),
+    pool_order: candidate.pool_order === undefined || candidate.pool_order === '' ? 0 : asTimestamp(candidate.pool_order, 'pool_order'),
     fetched_at: asTimestamp(candidate.fetched_at, 'fetched_at'),
   };
 }

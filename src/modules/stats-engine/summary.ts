@@ -1,4 +1,5 @@
 import type { GachaCategory, GachaRecord, PoolMetadata } from '@/domain/types';
+import { compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
 
 export interface SummaryMetrics {
   totalPulls: number;
@@ -101,7 +102,7 @@ export function computePityGaps(records: GachaRecord[], category?: GachaCategory
 
   const gaps: PityGapInfo[] = [];
   for (const [, poolRecords] of byPool) {
-    const sorted = [...poolRecords].sort((a, b) => a.gacha_ts - b.gacha_ts);
+    const sorted = [...poolRecords].sort(compareRecordsChronologically);
     let count = 0;
     for (const record of sorted) {
       if (!record.is_free) count++;
@@ -112,8 +113,7 @@ export function computePityGaps(records: GachaRecord[], category?: GachaCategory
     }
   }
 
-  // Sort by timestamp to maintain chronological order
-  return gaps.sort((a, b) => a.record.gacha_ts - b.record.gacha_ts);
+  return gaps.sort((a, b) => compareRecordsChronologically(a.record, b.record));
 }
 
 export function computePitySinceLastUp(
@@ -129,7 +129,11 @@ export function computePitySinceLastUp(
     const meta = metadata.get(r.pool_id);
     return Boolean(meta?.up6_name);
   });
-  const sorted = [...filtered].sort((a, b) => b.gacha_ts - a.gacha_ts);
+  const latest = [...filtered].sort(compareRecordsNewestFirst)[0];
+  if (!latest) return 0;
+  const sorted = filtered
+    .filter((record) => record.pool_id === latest.pool_id)
+    .sort(compareRecordsNewestFirst);
   let count = 0;
   for (const record of sorted) {
     // Any 6-star resets the UP guarantee: an off-banner triggers it,
@@ -148,7 +152,11 @@ export function calculateCurrentPity(records: GachaRecord[], category?: GachaCat
   const filtered = records
     .filter((record) => !category || record.category === category);
 
-  const ordered = preSorted ? filtered : [...filtered].sort((left, right) => right.gacha_ts - left.gacha_ts);
+  const latest = preSorted ? filtered[0] : [...filtered].sort(compareRecordsNewestFirst)[0];
+  if (!latest) return 0;
+  const ordered = filtered
+    .filter((record) => record.pool_id === latest.pool_id)
+    .sort(compareRecordsNewestFirst);
 
   let pity = 0;
   for (const record of ordered) {
@@ -168,7 +176,7 @@ export function summarizeRecords(records: GachaRecord[], metadata: Map<string, P
   if (!Array.isArray(records)) {
     return { totalPulls: 0, paidPulls: 0, rarityCounts: { 3: 0, 4: 0, 5: 0, 6: 0 }, sixStarRate: 0, fiveStarRate: 0, latestSixStar: null, latestUpSixStar: null, latestCharSixStar: null, latestWpnSixStar: null, currentPity: 0, currentPityWpn: 0, featuredSixStarHits: 0, offBannerSixStarHits: 0, pitySinceLastUp: 0 };
   }
-  const ordered = [...records].sort((left, right) => right.gacha_ts - left.gacha_ts);
+  const ordered = [...records].sort(compareRecordsNewestFirst);
 
   let totalPulls = 0;
   let paidPulls = 0;

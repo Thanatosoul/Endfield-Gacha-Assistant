@@ -21,12 +21,12 @@ export async function listRecordsByAccount(accountId?: string, database?: Databa
   const db = await resolveDatabase(database);
   if (accountId) {
     return db.select<GachaRecord[]>(
-      'SELECT * FROM gacha_records WHERE account_id = ? ORDER BY gacha_ts DESC, seq_id DESC',
+      'SELECT * FROM gacha_records WHERE account_id = ? ORDER BY category, pool_id, pool_order DESC',
       [accountId],
     );
   }
 
-  return db.select<GachaRecord[]>('SELECT * FROM gacha_records ORDER BY gacha_ts DESC, seq_id DESC');
+  return db.select<GachaRecord[]>('SELECT * FROM gacha_records ORDER BY account_id, category, pool_id, pool_order DESC');
 }
 
 export async function getExistingSeqIds(accountId: string, category: GachaRecord['category'], database?: Database): Promise<Set<string>> {

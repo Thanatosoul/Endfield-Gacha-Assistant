@@ -23,6 +23,7 @@ const sampleRecord: GachaRecord = {
   weapon_type: 'rifle',
   gacha_ts: 123,
   seq_id: '2001',
+  pool_order: 1,
   fetched_at: 456,
 };
 

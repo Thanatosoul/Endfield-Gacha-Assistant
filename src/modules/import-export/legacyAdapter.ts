@@ -167,6 +167,7 @@ function adaptCharRecord(legacy: LegacyCharRecord, account: GameAccount): GachaR
     weapon_type: null,
     gacha_ts: toGachaTs(legacy.gachaTs),
     seq_id: legacy.seqId,
+    pool_order: 0,
     fetched_at: legacy.fetchedAt,
   };
 }
@@ -194,6 +195,7 @@ function adaptWeaponRecord(legacy: LegacyWeaponRecord, account: GameAccount): Ga
     weapon_type: legacy.weaponType,
     gacha_ts: toGachaTs(legacy.gachaTs),
     seq_id: legacy.seqId,
+    pool_order: 0,
     fetched_at: legacy.fetchedAt,
   };
 }

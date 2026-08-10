@@ -29,21 +29,10 @@ export const STORAGE_SCHEMA = [
     weapon_type TEXT,
     gacha_ts INTEGER NOT NULL,
     seq_id TEXT NOT NULL,
+    pool_order INTEGER NOT NULL DEFAULT 0,
     fetched_at INTEGER NOT NULL,
     UNIQUE(account_id, category, seq_id)
   )
-  `,
-  `
-  CREATE INDEX IF NOT EXISTS idx_gacha_records_account_ts
-  ON gacha_records(account_id, gacha_ts DESC)
-  `,
-  `
-  CREATE INDEX IF NOT EXISTS idx_gacha_records_account_cat_ts
-  ON gacha_records(account_id, category, gacha_ts DESC)
-  `,
-  `
-  CREATE INDEX IF NOT EXISTS idx_gacha_records_ts_seq
-  ON gacha_records(gacha_ts DESC, seq_id DESC)
   `,
   `
   CREATE TABLE IF NOT EXISTS metadata (
@@ -79,6 +68,36 @@ export const STORAGE_SCHEMA = [
   `,
   `
   ALTER TABLE metadata ADD COLUMN data_version INTEGER NOT NULL DEFAULT 0
+  `,
+  `
+  ALTER TABLE gacha_records ADD COLUMN pool_order INTEGER NOT NULL DEFAULT 0
+  `,
+  `
+  UPDATE gacha_records AS current
+  SET pool_order = (
+    SELECT COUNT(*) + 1
+    FROM gacha_records AS earlier
+    WHERE earlier.account_id = current.account_id
+      AND earlier.category = current.category
+      AND earlier.pool_id = current.pool_id
+      AND (
+        earlier.gacha_ts < current.gacha_ts
+        OR (earlier.gacha_ts = current.gacha_ts AND earlier.seq_id < current.seq_id)
+      )
+  )
+  WHERE current.pool_order = 0
+  `,
+  `
+  CREATE INDEX IF NOT EXISTS idx_gacha_records_account_pool_order
+  ON gacha_records(account_id, category, pool_id, pool_order DESC)
+  `,
+  `
+  CREATE INDEX IF NOT EXISTS idx_gacha_records_account_category_pool
+  ON gacha_records(account_id, category, pool_id)
+  `,
+  `
+  CREATE INDEX IF NOT EXISTS idx_gacha_records_pool_order
+  ON gacha_records(category, pool_id, pool_order DESC)
   `,
   `
   CREATE TABLE IF NOT EXISTS preferences (
