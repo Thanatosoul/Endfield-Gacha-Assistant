@@ -25,19 +25,6 @@ export function useNotifications(): NotificationContextValue {
   return ctx;
 }
 
-export interface ThemeContextValue {
-  theme: 'dark' | 'light';
-  setTheme: (theme: 'dark' | 'light') => Promise<void>;
-}
-
-export const ThemeContext = createContext<ThemeContextValue | null>(null);
-
-export function useTheme(): ThemeContextValue {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('ThemeContext not available');
-  return ctx;
-}
-
 export interface AuthContextValue {
   token: string;
   setToken: (token: string) => void;

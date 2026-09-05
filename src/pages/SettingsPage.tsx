@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { Cloud, Download, RefreshCw } from 'lucide-react';
-import { useData, useTheme } from '@/app/hooks/contexts';
+import { useData } from '@/app/hooks/contexts';
 import { getSecurePreference, saveSecurePreference } from '@/modules/storage/repositories';
 import { isTauriRuntime } from '@/lib/runtime';
 
@@ -11,7 +11,6 @@ const WDAV_USER_KEY = 'webdav.user';
 const WDAV_PASS_KEY = 'webdav.pass';
 
 export const SettingsPage = memo(function SettingsPage() {
-  const { theme, setTheme } = useTheme();
   const { storageState, pathsLabel, exportJson, importJson, exportCsv, importCsv, syncAssets } = useData();
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [csvMsg, setCsvMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -195,31 +194,26 @@ export const SettingsPage = memo(function SettingsPage() {
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
       {/* left: preferences */}
-      <section className="panel rounded-[28px] p-5 sm:p-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent)]">偏好设置</p>
-        <h3 className="mt-2 text-xl font-semibold">主题与本地行为</h3>
+      <section className="ef-sec p-5 sm:p-6">
+        <p className="ef-kicker">偏好设置</p>
+        <h3 className="mt-2 ef-title text-xl">数据与本地行为</h3>
 
         <div className="mt-5 grid gap-3">
-          <div className="panel-strong rounded-3xl p-5">
-            <div className="flex flex-wrap gap-3">
-              <ThemeBtn active={theme === 'dark'}  label="深色主题"  onClick={() => void setTheme('dark')} />
-              <ThemeBtn active={theme === 'light'} label="浅色主题" onClick={() => void setTheme('light')} />
-            </div>
-          </div>
-
-          <div className="panel-strong rounded-3xl p-5">
-            <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">资源同步</div>
+          <div className="ef-sub p-5">
+            <div className="text-xs font-mono uppercase tracking-[0.18em] text-muted">资源同步</div>
             <p className="mt-3 text-sm text-muted">启动时后台检查卡池数据。手动同步会全量检查卡池和图片，但只下载缺失或已变化的图片，不会阻塞使用。</p>
-            <ActionBtn onClick={() => void handleSyncAssets()} disabled={syncingAssets}>
-              <RefreshCw className={syncingAssets ? 'animate-spin' : ''} />
-              {syncingAssets ? '同步中…' : '同步资源'}
-            </ActionBtn>
+            <div className="mt-4">
+              <ActionBtn onClick={() => void handleSyncAssets()} disabled={syncingAssets}>
+                <RefreshCw className={syncingAssets ? 'animate-spin' : ''} />
+                {syncingAssets ? '同步中…' : '同步资源'}
+              </ActionBtn>
+            </div>
             {assetMsg && <MsgBanner {...assetMsg} onDismiss={() => setAssetMsg(null)} />}
           </div>
 
           {/* JSON backup */}
-          <div className="panel-strong rounded-3xl p-5">
-            <div className="mb-3 text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">
+          <div className="ef-sub p-5">
+            <div className="mb-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">
               导入 / 导出
             </div>
             <div className="flex flex-wrap gap-3">
@@ -234,20 +228,20 @@ export const SettingsPage = memo(function SettingsPage() {
           </div>
 
           {/* WebDAV backup */}
-          <div className="panel-strong rounded-3xl p-5">
-            <div className="mb-3 text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">
+          <div className="ef-sub p-5">
+            <div className="mb-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">
               <span className="inline-flex items-center gap-1.5"><Cloud className="h-3.5 w-3.5" />WebDAV 备份</span>
             </div>
 
             <div className="grid gap-2">
               <input type="text" value={wdavUrl} onChange={(e) => setWdavUrl(e.target.value)}
                 placeholder="https://your-webdav-server.com/dav/"
-                className="w-full rounded-xl border border-[color:var(--panel-border)] bg-transparent px-3 py-2 text-sm outline-none" />
+                className="ef-field" />
               <div className="grid grid-cols-2 gap-2">
                 <input type="text" value={wdavUser} onChange={(e) => setWdavUser(e.target.value)}
-                  placeholder="用户名" className="w-full rounded-xl border border-[color:var(--panel-border)] bg-transparent px-3 py-2 text-sm outline-none" />
+                  placeholder="用户名" className="ef-field" />
                 <input type="password" value={wdavPass} onChange={(e) => setWdavPass(e.target.value)}
-                  placeholder="密码" className="w-full rounded-xl border border-[color:var(--panel-border)] bg-transparent px-3 py-2 text-sm outline-none" />
+                  placeholder="密码" className="ef-field" />
               </div>
             </div>
 
@@ -259,17 +253,17 @@ export const SettingsPage = memo(function SettingsPage() {
 
             <div className="mt-3">
               <button type="button" onClick={() => void handleWdavList()}
-                className="rounded-xl border border-[color:var(--panel-border)] px-3 py-1.5 text-xs text-muted transition hover:text-[color:var(--text-main)]">
+                className="ef-btn ef-btn--sm">
                 列出备份
               </button>
               {wdavBackups.length > 0 && (
-                <div className="mt-2 max-h-32 overflow-auto rounded-xl border border-[color:var(--panel-border)] p-2">
+                <div className="mt-2 max-h-32 overflow-auto border border-[color:var(--rule)] p-1">
                   {wdavBackups.map((name) => (
-                    <div key={name} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1 text-xs hover:bg-white/5">
+                    <div key={name} className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs hover:bg-white/5">
                       <span className="text-muted truncate">{name}</span>
                       <button type="button" onClick={() => void handleWdavRestore(name)}
                         disabled={wdavRestoring}
-                        className="shrink-0 rounded-lg border border-[color:var(--panel-border)] px-2 py-0.5 text-[10px] disabled:opacity-50">
+                        className="ef-btn ef-btn--sm shrink-0">
                         <Download className="inline h-3 w-3" /> 恢复
                       </button>
                     </div>
@@ -282,17 +276,17 @@ export const SettingsPage = memo(function SettingsPage() {
           </div>
 
           {/* token safety */}
-          <div className="panel-strong rounded-3xl p-5">
-            <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">Token 安全</div>
+          <div className="ef-sub p-5">
+            <div className="text-xs font-mono uppercase tracking-[0.18em] text-muted">Token 安全</div>
             <p className="mt-3 text-sm text-muted">Token 和密码使用设备指纹加密存储，仅本地可解密。</p>
           </div>
         </div>
       </section>
 
       {/* right: runtime + updates */}
-      <section className="panel rounded-[28px] p-5 sm:p-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent)]">运行时状态</p>
-        <h3 className="mt-2 text-xl font-semibold">桌面集成状态</h3>
+      <section className="ef-sec p-5 sm:p-6">
+        <p className="ef-kicker">运行时状态</p>
+        <h3 className="mt-2 ef-title text-xl">桌面集成状态</h3>
 
         <div className="mt-5 grid gap-3">
           <StatusCard label="存储初始化" value={storageState} />
@@ -305,24 +299,10 @@ export const SettingsPage = memo(function SettingsPage() {
 
 // ─── Internal components ──────────────────────────────────────────
 
-function ThemeBtn({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick}
-      className={[
-        'rounded-2xl border px-4 py-3 text-sm transition',
-        active
-          ? 'border-[color:var(--accent)] bg-[color:var(--accent)]/12 text-[color:var(--text-main)]'
-          : 'border-[color:var(--panel-border)] text-muted hover:text-[color:var(--text-main)]',
-      ].join(' ')}>
-      {label}
-    </button>
-  );
-}
-
 function ActionBtn({ children, onClick, disabled = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-      className="inline-flex items-center gap-2 rounded-2xl border border-[color:var(--panel-border)] px-4 py-3 text-sm transition hover:border-[color:var(--accent)]/50 disabled:cursor-wait disabled:opacity-60">
+      className="ef-btn">
       {children}
     </button>
   );
@@ -330,8 +310,8 @@ function ActionBtn({ children, onClick, disabled = false }: { children: React.Re
 
 function StatusCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="panel-strong rounded-3xl p-5">
-      <div className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">{label}</div>
+    <div className="ef-sub p-5">
+      <div className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">{label}</div>
       <div className="mt-3 text-sm text-muted break-all">{value}</div>
     </div>
   );
@@ -340,10 +320,10 @@ function StatusCard({ label, value }: { label: string; value: string }) {
 function MsgBanner({ ok, text, onDismiss }: { ok: boolean; text: string; onDismiss: () => void }) {
   return (
     <div className={[
-      'mt-4 rounded-2xl px-4 py-3 text-sm',
+      'mt-4 border-l-[3px] px-4 py-3 text-sm',
       ok
-        ? 'border border-[color:var(--success)]/40 text-[color:var(--success)]'
-        : 'border border-[color:var(--danger)]/40 text-[color:var(--danger)]',
+        ? 'border-[color:var(--success)] bg-[color:var(--success)]/5 text-[color:var(--success)]'
+        : 'border-[color:var(--danger)] bg-[color:var(--danger)]/5 text-[color:var(--danger)]',
     ].join(' ')}>
       {text}
       <button type="button" onClick={onDismiss} className="ml-3 text-xs opacity-60 hover:opacity-100">✕</button>

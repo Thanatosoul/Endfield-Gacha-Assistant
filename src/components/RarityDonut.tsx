@@ -80,7 +80,7 @@ export const RarityDonut = memo(function RarityDonut({ counts, size = 160 }: Rar
           const seg = segments.find((s) => s.rarity === cfg.rarity)!;
           return (
             <div key={cfg.rarity} className="flex items-center gap-1.5 text-xs">
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: cfg.color }} />
+              <span className="inline-block h-2 w-2" style={{ background: cfg.color }} />
               <span style={{ color: 'var(--text-muted)' }}>{cfg.label}</span>
               <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{seg.value}</span>
               <span style={{ color: 'var(--text-muted)' }}>({(seg.fraction * 100).toFixed(1)}%)</span>

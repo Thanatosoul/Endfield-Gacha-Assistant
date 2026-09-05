@@ -25,12 +25,12 @@ export const AvatarImg = memo(function AvatarImg({
   const style = { width: size, height: size };
 
   if (index >= candidates.length) {
-    return <span className={`inline-block rounded-full border-2 border-[color:var(--panel-border)] bg-black/20 ${ringClass}`} style={style} />;
+    return <span className={`inline-block border-2 border-[color:var(--panel-border)] bg-black/20 ${ringClass}`} style={style} />;
   }
 
   return (
     <img src={candidates[index]} alt="" title={title}
-      className={`rounded-full object-cover shrink-0 ${ringClass}`}
+      className={`object-cover shrink-0 ${ringClass}`}
       style={style}
       onError={() => setIndex((v) => v + 1)} />
   );

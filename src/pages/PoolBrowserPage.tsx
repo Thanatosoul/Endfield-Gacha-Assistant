@@ -115,17 +115,17 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
 
   return (
     <div className="grid gap-4">
-      <section className="panel rounded-[28px] p-5 sm:p-6">
+      <section className="ef-sec p-5 sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent)]">
+            <p className="ef-kicker">
               {category === 'character' ? '角色卡池' : '武器卡池'}
             </p>
-            <h3 className="mt-1 text-xl font-semibold">
+            <h3 className="mt-2 ef-title text-xl">
               {category === 'character' ? '卡池总览' : '武库总览'}
             </h3>
           </div>
-          <div className="text-sm text-muted">{pools.length} 个卡池</div>
+          <div className="font-mono text-xs uppercase tracking-[0.14em] text-muted">{pools.length} 个卡池</div>
         </div>
 
         <div className="mt-4 flex gap-2 border-b border-[color:var(--panel-border)]">
@@ -182,7 +182,7 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
           />
         ))}
         {pools.length === 0 && (
-          <div className="panel rounded-2xl p-5 text-sm text-muted">暂无卡池数据</div>
+          <div className="ef-empty">暂无卡池数据</div>
         )}
       </div>
 
@@ -315,7 +315,7 @@ const PoolBannerCard = memo(function PoolBannerCard({
   }, [pool.poolId, pool.category, assetsVersion]);
 
   return (
-    <div className="panel-strong group relative w-full overflow-hidden rounded-3xl text-left">
+    <div className="ef-sub group relative w-full overflow-hidden text-left">
       <button type="button" onClick={onOpenRecords} className="relative block w-full text-left">
         <div className="relative h-[180px] w-full overflow-hidden">
           {bannerIndex < bannerCandidates.length && (
@@ -333,8 +333,10 @@ const PoolBannerCard = memo(function PoolBannerCard({
               抽取时间 {cardStats.startTs ? formatDate(cardStats.startTs) : '—'} 至 {cardStats.endTs ? formatDate(cardStats.endTs) : '—'}
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 px-5 py-2">
-            <span className="text-sm text-white/80 font-semibold">{pool.pulls} 抽</span>
+          <div className="absolute bottom-0 left-0 flex items-center gap-3 px-5 py-2.5">
+            <span className="font-mono text-sm font-semibold tracking-[0.06em] text-white">{pool.pulls} 抽</span>
+            <span className="h-3 w-px bg-white/30" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/55">{pool.poolId}</span>
           </div>
         </div>
 
@@ -385,7 +387,7 @@ const PoolBannerCard = memo(function PoolBannerCard({
       <button
         type="button"
         onClick={onOpenSettings}
-        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 rounded-md border border-white/35 bg-black/45 p-3 text-white hover:bg-black/60"
+        className="absolute right-3 top-1/2 z-20 -translate-y-1/2 border border-white/40 bg-black/55 p-2.5 text-white transition-colors hover:bg-black/80"
         title="卡池设置"
       >
         <Menu className="h-5 w-5" />
@@ -412,46 +414,42 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
   const poolMeta = metadataIndex.get(pool.poolId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="panel w-full max-w-5xl max-h-[90vh] flex flex-col rounded-3xl">
-        <div className="flex items-center justify-between border-b border-[color:var(--panel-border)] px-5 py-4 shrink-0">
+    <div className="ef-overlay">
+      <div className="ef-modal w-full max-w-5xl">
+        <div className="ef-modal-head">
           <div>
-            <div className="text-lg font-semibold">{pool.poolName}</div>
-            <div className="text-xs text-muted">{pool.poolId}</div>
+            <div className="ef-title text-lg">{pool.poolName}</div>
+            <div className="mt-0.5 font-mono text-xs text-muted">{pool.poolId}</div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-[color:var(--panel-border)] px-3 py-2 text-sm"
-          >
+          <button type="button" onClick={onClose} className="ef-btn ef-btn--sm shrink-0">
             关闭
           </button>
         </div>
 
         <div className="shrink-0">
-          <div className="flex justify-center border-b border-[color:var(--panel-border)] py-4">
+          <div className="flex justify-center border-b border-[color:var(--rule)] py-4">
             <RarityDonut counts={pool.rarityCounts} size={140} />
           </div>
-          <div className="border-b border-[color:var(--panel-border)] p-4">
+          <div className="border-b border-[color:var(--rule)] p-4">
             <PullTimeline records={records} metadata={poolMeta} />
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-auto">
-          <table className="min-w-full border-collapse text-sm">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table className="ef-table">
             <thead>
-              <tr className="text-left text-muted">
-                <th className="px-5 py-3 font-medium">时间</th>
-                <th className="px-5 py-3 font-medium">物品</th>
-                <th className="px-5 py-3 font-medium">稀有度</th>
-                <th className="px-5 py-3 font-medium">标记</th>
+              <tr>
+                <th>时间</th>
+                <th>物品</th>
+                <th>稀有度</th>
+                <th>标记</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((r) => (
-                <tr key={r.record_uid} className="border-t border-[color:var(--panel-border)]/70">
-                  <td className="px-5 py-3">{formatDateTime(r.gacha_ts)}</td>
-                  <td className="px-5 py-3">
+                <tr key={r.record_uid}>
+                  <td>{formatDateTime(r.gacha_ts)}</td>
+                  <td>
                     <div className="flex items-center gap-2">
                       <AvatarImg category={r.category} itemId={r.item_id} size={32} />
                       <div>
@@ -460,18 +458,18 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3"><span className={rarityTextClass(r.rarity)}>{r.rarity}★</span></td>
-                  <td className="px-5 py-3">
+                  <td><span className={rarityTextClass(r.rarity)}>{r.rarity}★</span></td>
+                  <td>
                     <div className="flex gap-2 text-xs">
-                      {r.is_new ? <span className="rounded-full border border-[color:var(--panel-border)] px-2 py-1">NEW</span> : null}
-                      {r.is_free ? <span className="rounded-full border border-[color:var(--panel-border)] px-2 py-1">FREE</span> : null}
+                      {r.is_new ? <span className="ef-chip ef-chip--sig">NEW</span> : null}
+                      {r.is_free ? <span className="ef-chip ef-chip--ok">FREE</span> : null}
                     </div>
                   </td>
                 </tr>
               ))}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-muted">
+                  <td colSpan={4} className="py-8 text-center text-muted">
                     暂无匹配记录。
                   </td>
                 </tr>

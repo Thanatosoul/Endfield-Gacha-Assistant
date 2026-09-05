@@ -53,7 +53,7 @@ export const PityHistogram = memo(function PityHistogram({ gaps }: PityHistogram
 
   if (gaps.length === 0) {
     return (
-      <div className="panel-strong rounded-2xl p-6 text-center text-sm text-muted">
+      <div className="ef-empty">
         暂无六星出货记录，无法生成分布图
       </div>
     );
@@ -61,7 +61,7 @@ export const PityHistogram = memo(function PityHistogram({ gaps }: PityHistogram
 
   return (
     <div className="w-full">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 300 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 300, fontFamily: 'var(--font-mono)' }}>
         {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
           const y = yScale(frac * maxCount);
           return (
@@ -81,7 +81,7 @@ export const PityHistogram = memo(function PityHistogram({ gaps }: PityHistogram
           height={chartH}
           fill="#dc2626"
           opacity={0.07}
-          rx={4}
+          rx={0}
         />
         <text
           x={pad.l + 8 * bucketW}
@@ -100,7 +100,7 @@ export const PityHistogram = memo(function PityHistogram({ gaps }: PityHistogram
           height={chartH}
           fill="#7f1d1d"
           opacity={0.08}
-          rx={4}
+          rx={0}
         />
         <text
           x={pad.l + 10 * bucketW}
@@ -120,7 +120,7 @@ export const PityHistogram = memo(function PityHistogram({ gaps }: PityHistogram
 
           return (
             <g key={bucket.label}>
-              <rect x={x} y={y} width={barW} height={Math.max(h, 2)} rx={3} fill={bucket.color} opacity={0.88}>
+              <rect x={x} y={y} width={barW} height={Math.max(h, 2)} rx={0} fill={bucket.color} opacity={0.88}>
                 <title>{bucket.label}: {count} 次</title>
               </rect>
               {count > 0 && (

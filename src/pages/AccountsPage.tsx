@@ -110,26 +110,26 @@ export const AccountsPage = memo(function AccountsPage() {
   return (
     <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
       {/* left column */}
-      <section className="panel rounded-[28px] p-5 sm:p-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent)]">账号</p>
-        <h3 className="mt-2 text-xl font-semibold">本地账号列表</h3>
+      <section className="ef-sec p-5 sm:p-6">
+        <p className="ef-kicker">账号</p>
+        <h3 className="mt-2 ef-title text-xl">本地账号列表</h3>
 
         {/* auth form */}
-        <div className="mt-5 panel-strong rounded-3xl p-5">
+        <div className="ef-sub mt-5 p-5">
           <div className="grid gap-3">
             <label className="block text-sm">
-              <span className="mb-2 block text-xs uppercase tracking-[0.18em] text-muted">官方 Token</span>
+              <span className="mb-2 block font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">官方 Token</span>
               <input
                 type="password"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="仅本地用于换取凭证，不会上传"
-                className="w-full rounded-2xl border border-[color:var(--panel-border)] bg-transparent px-3 py-2 outline-none"
+                className="ef-field"
               />
             </label>
 
-            <details className="mt-1 rounded-2xl border border-[color:var(--panel-border)] bg-white/[0.02]">
-              <summary className="cursor-pointer px-4 py-2 text-xs text-muted hover:text-[color:var(--text-main)] transition select-none">
+            <details className="mt-1 border border-[color:var(--rule)] bg-white/[0.02]">
+              <summary className="cursor-pointer px-4 py-2 text-xs text-muted transition select-none hover:text-[color:var(--text-main)]">
                 Token 获取指引
               </summary>
               <div className="space-y-2 px-4 pb-3 pt-1">
@@ -162,7 +162,7 @@ export const AccountsPage = memo(function AccountsPage() {
               type="button"
               onClick={() => void authenticate()}
               disabled={authenticating}
-              className="rounded-2xl border border-[color:var(--accent)] bg-[color:var(--accent)]/12 px-4 py-3 text-sm disabled:opacity-50"
+              className="ef-btn ef-btn--primary"
             >
               {authenticating ? '认证中…' : '认证'}
             </button>
@@ -170,7 +170,7 @@ export const AccountsPage = memo(function AccountsPage() {
               type="button"
               onClick={() => void importBindings()}
               disabled={!canImportBindings}
-              className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-3 text-sm disabled:opacity-50"
+              className="ef-btn"
             >
               导入绑定 ({bindings.length})
             </button>
@@ -188,7 +188,7 @@ export const AccountsPage = memo(function AccountsPage() {
             const editing = editingCheckInHguids.includes(account.hg_uid);
 
             return (
-              <article key={account.id} className="panel-strong rounded-3xl p-5">
+              <article key={account.id} className="ef-sub p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h4 className="text-lg font-semibold">{account.nickname}</h4>
@@ -196,9 +196,7 @@ export const AccountsPage = memo(function AccountsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {hasConfig && (
-                      <span className="rounded-full border border-[color:var(--success)]/40 px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] text-[color:var(--success)]">
-                        签到
-                      </span>
+                      <span className="ef-chip ef-chip--ok">签到</span>
                     )}
                   </div>
                 </div>
@@ -217,7 +215,7 @@ export const AccountsPage = memo(function AccountsPage() {
                     {cfg.lastResults.map((r, i) => (
                       <span
                         key={i}
-                        className={`rounded-full border px-2 py-0.5 text-[10px] ${r.success ? 'border-[color:var(--success)]/40 text-[color:var(--success)]' : 'border-[color:var(--danger)]/40 text-[color:var(--danger)]'}`}
+                        className={r.success ? 'ef-chip ef-chip--ok' : 'ef-chip ef-chip--err'}
                       >
                         {r.game}: {r.success ? r.awards.join(', ') || '已签' : r.error}
                       </span>
@@ -229,19 +227,14 @@ export const AccountsPage = memo(function AccountsPage() {
                   <button
                     type="button"
                     onClick={() => void setActiveAccountId(account.id)}
-                    className={[
-                      'rounded-2xl border px-4 py-2 text-sm',
-                      account.id === activeAccountId
-                        ? 'border-[color:var(--accent)] bg-[color:var(--accent)]/12'
-                        : 'border-[color:var(--panel-border)]',
-                    ].join(' ')}
+                    className={account.id === activeAccountId ? 'ef-btn ef-btn--primary' : 'ef-btn'}
                   >
                     {account.id === activeAccountId ? '已选中' : '选中'}
                   </button>
                   <button
                     type="button"
                     onClick={() => toggleEdit(account.hg_uid)}
-                    className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-2 text-sm"
+                    className="ef-btn"
                   >
                     <span className="inline-flex items-center gap-1.5">
                       <CalendarCheck className="h-3.5 w-3.5" />
@@ -260,7 +253,7 @@ export const AccountsPage = memo(function AccountsPage() {
                         }
                       })();
                     }}
-                    className="rounded-2xl border border-red-400/50 px-4 py-2 text-sm text-red-300 hover:bg-red-500/10"
+                    className="ef-btn ef-btn--danger"
                   >
                     删除账号
                   </button>
@@ -268,7 +261,7 @@ export const AccountsPage = memo(function AccountsPage() {
 
                 {/* Check-in settings panel */}
                 {editing && uniqueHgUids.includes(account.hg_uid) && (
-                  <div className="mt-4 rounded-2xl border border-[color:var(--panel-border)] p-4">
+                  <div className="mt-4 border border-[color:var(--rule)] p-4">
                     <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--accent)]">签到设置</p>
                     <p className="mt-1 text-xs text-muted">
                       HG UID: {account.hg_uid}
@@ -283,7 +276,7 @@ export const AccountsPage = memo(function AccountsPage() {
                         <button
                           type="button"
                           onClick={() => void handleEnableCheckIn(account.hg_uid)}
-                          className="rounded-2xl border border-[color:var(--accent)] bg-[color:var(--accent)]/12 px-4 py-2 text-xs"
+                          className="ef-btn ef-btn--sm ef-btn--primary"
                         >
                           启用签到
                         </button>
@@ -291,7 +284,7 @@ export const AccountsPage = memo(function AccountsPage() {
                       <button
                         type="button"
                         onClick={() => toggleEdit(account.hg_uid)}
-                        className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-2 text-xs"
+                        className="ef-btn ef-btn--sm"
                       >
                         关闭
                       </button>
@@ -299,7 +292,7 @@ export const AccountsPage = memo(function AccountsPage() {
                         <button
                           type="button"
                           onClick={() => void handleDeleteCheckIn(account.hg_uid)}
-                          className="rounded-2xl border border-red-400/40 px-4 py-2 text-xs text-red-300"
+                          className="ef-btn ef-btn--sm ef-btn--danger"
                         >
                           清除签到配置
                         </button>
@@ -308,7 +301,7 @@ export const AccountsPage = memo(function AccountsPage() {
 
                     {saveMsg[account.hg_uid] && (
                       <div className={[
-                        'mt-3 rounded-2xl px-4 py-2 text-xs',
+                        'mt-3 border px-4 py-2 text-xs',
                         saveMsg[account.hg_uid].ok
                           ? 'border border-[color:var(--success)]/40 text-[color:var(--success)]'
                           : 'border border-[color:var(--danger)]/40 text-[color:var(--danger)]',
@@ -325,17 +318,17 @@ export const AccountsPage = memo(function AccountsPage() {
       </section>
 
       {/* right column – sync panel */}
-      <section className="panel rounded-[28px] p-5 sm:p-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent)]">账号</p>
-        <h3 className="mt-2 text-xl font-semibold">官方同步</h3>
+      <section className="ef-sec p-5 sm:p-6">
+        <p className="ef-kicker">同步</p>
+        <h3 className="mt-2 ef-title text-xl">官方同步</h3>
 
-        <div className="mt-5 panel-strong rounded-3xl p-5">
+        <div className="ef-sub mt-5 p-5">
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => void syncActiveAccount()}
               disabled={!selectedAccount || isSyncing}
-              className="rounded-2xl border border-[color:var(--accent)] bg-[color:var(--accent)]/12 px-4 py-3 text-sm disabled:opacity-50 transition hover:bg-[color:var(--accent)]/20"
+              className={isSyncing ? 'ef-btn' : 'ef-btn ef-btn--primary'}
             >
               {syncLabel}
             </button>
@@ -343,7 +336,7 @@ export const AccountsPage = memo(function AccountsPage() {
               <button
                 type="button"
                 onClick={cancelSync}
-                className="rounded-2xl border border-red-400/40 px-4 py-3 text-sm text-red-300 hover:bg-red-500/10"
+                className="ef-btn ef-btn--danger"
               >
                 取消同步
               </button>
@@ -352,18 +345,18 @@ export const AccountsPage = memo(function AccountsPage() {
               type="button"
               onClick={() => void handleRefresh()}
               disabled={refreshing}
-              className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-3 text-sm disabled:opacity-50"
+              className="ef-btn"
               title="从数据库重新加载记录与账号"
             >
               <span className="inline-flex items-center gap-2">
                 <RefreshCcw className="h-4 w-4" />{refreshing ? '刷新中…' : '刷新'}
               </span>
             </button>
-            <span className="w-px h-6 self-center" style={{ background: 'var(--panel-border)' }} />
+            <span className="w-px h-6 self-center" style={{ background: 'var(--rule)' }} />
             <button
               type="button"
               onClick={() => void exportFullJson()}
-              className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-3 text-sm transition hover:border-[color:var(--accent)]/50"
+              className="ef-btn"
             >
               <span className="inline-flex items-center gap-2">
                 <Upload className="h-4 w-4" />转移账户全部数据
@@ -380,7 +373,7 @@ export const AccountsPage = memo(function AccountsPage() {
                   }
                 })();
               }}
-              className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-3 text-sm transition hover:border-[color:var(--accent)]/50"
+              className="ef-btn"
             >
               <span className="inline-flex items-center gap-2">
                 <Download className="h-4 w-4" />导入账户数据
@@ -413,18 +406,18 @@ export const AccountsPage = memo(function AccountsPage() {
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[color:var(--panel-border)] px-4 py-3">
-      <div className="text-xs uppercase tracking-[0.18em] text-muted">{label}</div>
-      <div className="mt-2 text-sm">{value}</div>
+    <div className="border border-[color:var(--rule)] px-4 py-3">
+      <div className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">{label}</div>
+      <div className="mt-2 text-sm break-all">{value}</div>
     </div>
   );
 }
 
 function Step({ num, label, children }: { num: number; label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-[color:var(--panel-border)] bg-white/[0.03] px-3 py-2">
+    <div className="border border-[color:var(--rule)] bg-white/[0.03] px-3 py-2">
       <div className="flex items-center gap-2 mb-1">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--accent)]/20 text-[10px] font-bold text-[color:var(--accent)]">
+        <span className="inline-flex h-5 w-5 items-center justify-center bg-[color:var(--signal)] text-[10px] font-bold text-[color:var(--signal-ink)]">
           {num}
         </span>
         <span className="text-xs font-medium">{label}</span>

@@ -120,10 +120,10 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="rounded-2xl bg-[color:var(--panel-bg)] p-6">
+      <div className="ef-overlay">
+        <div className="ef-modal w-full max-w-sm p-6">
           <div className="flex items-center gap-3">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[color:var(--accent)] border-transparent border-t-[color:var(--accent)]" />
+            <div className="ef-spinner" />
             加载中...
           </div>
         </div>
@@ -133,13 +133,13 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
 
   if (!pool) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="rounded-2xl bg-[color:var(--panel-bg)] p-6 max-w-sm">
-          <p className="text-red-600">{error || '无法加载卡池信息'}</p>
+      <div className="ef-overlay">
+        <div className="ef-modal w-full max-w-sm p-6">
+          <p className="text-sm text-[color:var(--danger)]">{error || '无法加载卡池信息'}</p>
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 rounded-lg bg-[color:var(--accent)] px-4 py-2 text-white"
+            className="ef-btn ef-btn--primary mt-4"
           >
             关闭
           </button>
@@ -149,21 +149,22 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-[color:var(--panel-bg)] p-6">
+    <div className="ef-overlay">
+      <div className="ef-modal w-full max-w-md p-6">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold">编辑卡池</h2>
+          <h2 className="ef-title text-xl">编辑卡池</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-muted hover:text-[color:var(--text-main)]"
+            className="text-muted transition-colors hover:text-[color:var(--text-main)]"
+            aria-label="关闭"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-600">
+          <div className="mt-4 border border-[color:var(--danger)]/40 bg-[color:var(--danger)]/5 p-3 text-sm text-[color:var(--danger)]">
             {error}
           </div>
         )}
@@ -175,7 +176,7 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
               type="text"
               value={pool.pool_id}
               disabled
-              className="mt-1 w-full rounded-lg border border-[color:var(--panel-border)] bg-white/5 px-3 py-2 text-sm text-muted"
+              className="ef-field mt-1 text-muted"
             />
           </div>
 
@@ -185,7 +186,7 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
               type="text"
               value={pool.pool_name}
               onChange={(e) => setPool({ ...pool, pool_name: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-[color:var(--panel-border)] bg-white/5 px-3 py-2 text-sm"
+              className="ef-field mt-1"
             />
           </div>
 
@@ -195,7 +196,7 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
               type="text"
               value={pool.up6_name}
               onChange={(e) => setPool({ ...pool, up6_name: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-[color:var(--panel-border)] bg-white/5 px-3 py-2 text-sm"
+              className="ef-field mt-1"
               placeholder="如果没有则留空"
             />
           </div>
@@ -204,11 +205,11 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--accent)]/90 disabled:opacity-50"
+              className="ef-btn ef-btn--primary flex-1"
             >
               {saving ? (
                 <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-transparent border-t-white" />
+                  <span className="h-3.5 w-3.5 animate-spin border-2 border-[color:var(--signal-ink)]/30 border-t-[color:var(--signal-ink)]" />
                   保存中...
                 </>
               ) : (
@@ -222,7 +223,7 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="flex-1 rounded-lg border border-[color:var(--panel-border)] px-4 py-2 text-sm font-semibold transition hover:bg-white/5 disabled:opacity-50"
+              className="ef-btn flex-1"
             >
               取消
             </button>
@@ -230,7 +231,7 @@ export function PoolEditModal({ poolId, poolName, onClose }: PoolEditModalProps)
               type="button"
               onClick={handleDelete}
               disabled={saving}
-              className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-500/5 disabled:opacity-50"
+              className="ef-btn ef-btn--danger"
             >
               删除
             </button>

@@ -10,7 +10,6 @@ import { isTauriRuntime } from '@/lib/runtime';
 
 export interface BootstrapResult {
   ready: boolean;
-  theme: 'dark' | 'light';
   token: string;
   appToken: string | null;
   activeAccountId: string | null;
@@ -23,7 +22,6 @@ export interface BootstrapResult {
   error: string | null;
 }
 
-const THEME_KEY = 'ui.theme';
 const ACTIVE_ACCOUNT_KEY = 'ui.activeAccountId';
 const SKLAND_TOKEN_KEY = 'skland.token';
 const APP_TOKEN_KEY = 'auth.appToken';
@@ -31,7 +29,7 @@ const RESOURCE_VERSION_KEY = 'resources.version';
 
 export function useBootstrap(): BootstrapResult {
   const [result, setResult] = useState<BootstrapResult>({
-    ready: false, theme: 'dark', token: '', appToken: null,
+    ready: false, token: '', appToken: null,
     activeAccountId: null, accounts: [], records: [], metadata: seedMetadata,
     storageState: '', pathsLabel: '', resourceVersion: '未同步', error: null,
   });
@@ -42,10 +40,9 @@ export function useBootstrap(): BootstrapResult {
       try {
         const { databaseUrl } = await bootstrapStorage();
 
-        const [savedTheme, savedActiveAccount, savedToken, savedResourceVersion] = await Promise.all([
-          getPreference(THEME_KEY), getPreference(ACTIVE_ACCOUNT_KEY), getPreference(SKLAND_TOKEN_KEY), getPreference(RESOURCE_VERSION_KEY),
+        const [savedActiveAccount, savedToken, savedResourceVersion] = await Promise.all([
+          getPreference(ACTIVE_ACCOUNT_KEY), getPreference(SKLAND_TOKEN_KEY), getPreference(RESOURCE_VERSION_KEY),
         ]);
-        const nextTheme = savedTheme?.value === 'light' ? 'light' : 'dark';
         const preferredAccountId = savedActiveAccount?.value?.trim() ? savedActiveAccount.value : null;
         if (!alive) return;
 
@@ -87,7 +84,7 @@ export function useBootstrap(): BootstrapResult {
 
         if (!alive) return;
         setResult({
-          ready: true, theme: nextTheme, token, appToken,
+          ready: true, token, appToken,
           activeAccountId: accountId, accounts: accountsData, records: recordsData,
           metadata: finalMetadata,
           storageState: databaseUrl.replace(/^sqlite:/, ''), resourceVersion,

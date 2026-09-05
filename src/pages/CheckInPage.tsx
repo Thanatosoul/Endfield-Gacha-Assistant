@@ -114,7 +114,7 @@ export function CheckInPage() {
         {results.map((r, i) => (
           <span
             key={i}
-            className={`rounded-full border px-2 py-0.5 text-[10px] ${r.success ? 'border-[color:var(--success)]/40 text-[color:var(--success)]' : 'border-[color:var(--danger)]/40 text-[color:var(--danger)]'}`}
+            className={`ef-chip ${r.success ? 'ef-chip--ok' : 'ef-chip--err'}`}
           >
             {r.game}: {r.success ? r.awards.join(', ') || '已签' : r.error}
           </span>
@@ -125,18 +125,18 @@ export function CheckInPage() {
 
   return (
     <div className="grid gap-4">
-      <section className="panel rounded-[28px] p-5 sm:p-6">
+      <section className="ef-sec p-5 sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--accent)]">森空岛</p>
-            <h3 className="mt-2 text-xl font-semibold">每日签到</h3>
+            <p className="ef-kicker">森空岛</p>
+            <h3 className="mt-2 ef-title text-xl">每日签到</h3>
           </div>
           {allConfigured && (
             <button
               type="button"
               onClick={() => void handleBatchCheckIn()}
               disabled={batchChecking}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[color:var(--accent)] bg-[color:var(--accent)]/12 px-5 py-3 text-sm font-medium disabled:opacity-50 transition hover:bg-[color:var(--accent)]/20"
+              className="ef-btn ef-btn--primary"
             >
               <Check className="h-4 w-4" />
               {batchChecking ? '签到中…' : '一键签到'}
@@ -152,14 +152,12 @@ export function CheckInPage() {
       </section>
 
       {checkInStates.map((state, index) => (
-        <section key={state.hgUid} className="panel rounded-[28px] p-5 sm:p-6">
+        <section key={state.hgUid} className="ef-sec p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="text-lg font-semibold">{state.nickname}</h4>
-                <span className="rounded-full border border-[color:var(--panel-border)] px-2 py-0.5 text-[10px] text-muted">
-                  {state.hgUid}
-                </span>
+                <h4 className="ef-title text-lg">{state.nickname}</h4>
+                <span className="ef-chip">{state.hgUid}</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted">
                 <span>上次签到: {fmtTime(state.config.lastCheckInAt)}</span>
@@ -170,7 +168,7 @@ export function CheckInPage() {
               type="button"
               onClick={() => void handleSingleCheckIn(index)}
               disabled={state.checking || batchChecking}
-              className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-[color:var(--panel-border)] px-4 py-2.5 text-sm disabled:opacity-50 transition hover:border-[color:var(--accent)]/50"
+              className="ef-btn shrink-0"
             >
               <CalendarCheck className="h-4 w-4" />
               {state.checking ? '签到中…' : '签到'}
@@ -178,7 +176,7 @@ export function CheckInPage() {
           </div>
 
           {state.error && (
-            <div className="mt-3 rounded-2xl border border-[color:var(--danger)]/40 px-4 py-2 text-xs text-[color:var(--danger)]">
+            <div className="mt-3 border border-[color:var(--danger)]/40 px-4 py-2 text-xs text-[color:var(--danger)]">
               {state.error}
             </div>
           )}
@@ -189,8 +187,8 @@ export function CheckInPage() {
                 user.results.map((r, i) => (
                   <div
                     key={`${r.game}-${r.nickname}-${i}`}
-                    className={`panel-strong flex items-center justify-between rounded-2xl p-3 border-l-2 ${
-                      r.success ? 'border-[color:var(--success)]/40' : 'border-[color:var(--danger)]/40'
+                    className={`ef-sub flex items-center justify-between gap-3 p-3 border-l-2 ${
+                      r.success ? 'border-[color:var(--success)]' : 'border-[color:var(--danger)]'
                     }`}
                   >
                     <div className="flex items-center gap-3">

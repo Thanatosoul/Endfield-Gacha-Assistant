@@ -1,45 +1,57 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark;
-  font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --app-bg: #000000;
-  --panel-bg: rgba(12, 12, 12, 0.88);
-  --panel-strong: rgba(20, 20, 20, 0.94);
-  --panel-border: rgba(253, 253, 31, 0.12);
-  --text-main: #fafafa;
-  --text-muted: #8a8a8a;
-  --accent: #fdfd1f;
-  --accent-strong: #fffa00;
-  --accent-dim: rgba(253, 253, 31, 0.15);
-  --success: #4ade80;
-  --warning: #fdfd1f;
-  --danger: #f87171;
-  --grid-line: rgba(253, 253, 31, 0.04);
-  background:
-    radial-gradient(ellipse 120% 60% at 50% 0%, rgba(253, 253, 31, 0.06), transparent 50%),
-    linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+@theme {
+  --font-sans: "Space Grotesk", "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "DIN Condensed", "Arial Narrow", "Roboto Condensed", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "IBM Plex Mono", "Consolas", "SF Mono", ui-monospace, monospace;
 }
 
-[data-theme='light'] {
-  color-scheme: light;
-  --app-bg: #e9e7df;
-  --panel-bg: rgba(248, 247, 242, 0.94);
-  --panel-strong: rgba(255, 255, 252, 0.98);
-  --panel-border: rgba(24, 27, 23, 0.16);
-  --text-main: #1a1d19;
-  --text-muted: #62665d;
-  --accent: #66720d;
-  --accent-strong: #4f5b06;
-  --accent-dim: rgba(126, 139, 25, 0.16);
-  --success: #267044;
-  --warning: #7a6500;
-  --danger: #a63a32;
-  --grid-line: rgba(24, 27, 23, 0.055);
-  background:
-    radial-gradient(ellipse 120% 68% at 50% -12%, rgba(177, 190, 55, 0.24), transparent 54%),
-    linear-gradient(180deg, #f3f2eb 0%, #e3e1d7 100%);
+/* ------------------------------------------------------------------ */
+/*  ENDFIELD — family tokens                                           */
+/*  data-ark-theme="endfield" / data-ark-depth="complex" (see index)   */
+/* ------------------------------------------------------------------ */
+
+:root {
+  color-scheme: dark;
+  /* surface / ink */
+  --ink: #191919;
+  --paper: #f2f2f0;
+  --state: #00ffa2;
+  --muted: #9a9a94;
+  /* signal */
+  --signal: #fffa00;
+  --signal-ink: #121212;
+  --signal-dim: rgba(255, 250, 0, 0.13);
+  /* shell */
+  --app-bg: #0a0a0a;
+  --dock: #151514;
+  --dock-rule: rgba(242, 242, 240, 0.12);
+  --panel-bg: rgba(18, 18, 18, 0.86);
+  --panel-strong: #161616;
+  --panel-border: rgba(242, 242, 240, 0.16);
+  --rule: rgba(242, 242, 240, 0.16);
+  --rule-soft: rgba(242, 242, 240, 0.09);
+  /* text */
+  --text-main: #f2f2f0;
+  --text-muted: #9a9a94;
+  /* semantic (legacy names kept for existing arbitrary utilities) */
+  --accent: #fffa00;
+  --accent-strong: #fffa00;
+  --accent-dim: rgba(255, 250, 0, 0.13);
+  --success: #00ffa2;
+  --warning: #fffa00;
+  --danger: #ff6b66;
+  --grid-line: rgba(242, 242, 240, 0.05);
+  /* endfield decoration shadow */
+  --panel-shadow: 6px 6px 0 color-mix(in srgb, var(--signal) 32%, transparent);
+  --inner-hi: rgba(255, 255, 255, 0.04);
 }
+
+
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
 
 html,
 body,
@@ -52,10 +64,12 @@ body {
   min-height: 100vh;
   color: var(--text-main);
   background:
+    radial-gradient(ellipse 90% 42% at 78% -6%, var(--signal-dim), transparent 60%),
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
     var(--app-bg);
-  background-size: 28px 28px, 28px 28px, auto;
+  background-size: auto, 44px 44px, 44px 44px, auto;
+  font-family: var(--font-sans);
 }
 
 * {
@@ -64,51 +78,41 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+  letter-spacing: inherit;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--signal-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(253, 253, 31, 0.18);
-  border-radius: 999px;
+  background: rgba(255, 250, 0, 0.22);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(253, 253, 31, 0.32);
-}
-
-.panel {
-  border: 1px solid var(--panel-border);
-  background: var(--panel-bg);
-  backdrop-filter: blur(24px);
-  box-shadow: inset 0 1px 0 rgba(253, 253, 31, 0.04), 0 12px 32px rgba(0, 0, 0, 0.4);
-}
-
-.panel-strong {
-  border: 1px solid var(--panel-border);
-  background: var(--panel-strong);
-  backdrop-filter: blur(24px);
-}
-
-[data-theme='light'] .panel {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 252, 0.92), 0 12px 30px rgba(35, 39, 27, 0.11);
-}
-
-[data-theme='light'] .panel-strong {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 252, 0.96), 0 5px 14px rgba(35, 39, 27, 0.07);
-}
-
-.text-muted {
-  color: var(--text-muted);
-}
-
-.accent-line {
-  background: linear-gradient(90deg, transparent 0%, var(--accent) 35%, transparent 100%);
+  background: rgba(255, 250, 0, 0.45);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 select {
@@ -117,29 +121,651 @@ select {
 
 select option,
 select optgroup {
-  background: #1a1a1a;
+  background: var(--panel-strong);
   color: var(--text-main);
 }
 
-[data-theme='light'] select option,
-[data-theme='light'] select optgroup {
-  background: #ffffff;
+@keyframes status-pulse {
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.55rem transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Text helpers (plain classes — not Tailwind utilities)              */
+/* ------------------------------------------------------------------ */
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.ef-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.ef-kicker::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--signal);
+  flex: none;
+}
+
+.ef-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-main);
 }
 
-/* Endfield-style active button glow */
-.btn-accent {
-  border-color: var(--accent);
-  background: var(--accent-dim);
+.ef-num {
+  font-family: var(--font-display);
+  font-weight: 700;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
-.btn-accent:hover {
-  background: rgba(253, 253, 31, 0.2);
-  box-shadow: 0 0 16px rgba(253, 253, 31, 0.12);
+.ef-code {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-[data-theme='light'] .btn-accent:hover {
-  background: rgba(126, 139, 25, 0.22);
-  box-shadow: 0 0 14px rgba(102, 114, 13, 0.16);
+/* ------------------------------------------------------------------ */
+/*  Surfaces                                                           */
+/* ------------------------------------------------------------------ */
+
+.ef-sec {
+  position: relative;
+  border: 1px solid var(--rule);
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 var(--inner-hi);
+}
+
+.ef-sec--acc::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 2px;
+  height: 2.4rem;
+  background: var(--signal);
+}
+
+.ef-sub {
+  border: 1px solid var(--rule);
+  background: var(--panel-strong);
+  box-shadow: inset 0 1px 0 var(--inner-hi);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Buttons                                                            */
+/* ------------------------------------------------------------------ */
+
+.ef-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.4rem;
+  padding: 0.45rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.ef-btn:hover:not(:disabled) {
+  border-color: var(--signal);
+  transform: translateY(-1px);
+}
+
+.ef-btn--primary {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--signal-ink);
+  font-weight: 700;
+}
+
+.ef-btn--primary:hover:not(:disabled) {
+  border-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 84%, #fff);
+  color: var(--signal-ink);
+}
+
+.ef-btn--danger {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  color: var(--danger);
+}
+
+.ef-btn--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+}
+
+.ef-btn--sm {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.68rem;
+}
+
+.ef-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Fields                                                             */
+/* ------------------------------------------------------------------ */
+
+.ef-field {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.18s ease;
+}
+
+.ef-field::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.ef-field:focus {
+  border-color: var(--signal);
+}
+
+.ef-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+textarea.ef-field {
+  resize: vertical;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Chips / flags                                                      */
+/* ------------------------------------------------------------------ */
+
+.ef-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  white-space: nowrap;
+}
+
+.ef-chip--ok {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+}
+
+.ef-chip--err {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.ef-chip--sig {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--signal) 45%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Key/value data rows                                                */
+/* ------------------------------------------------------------------ */
+
+.ef-data {
+  min-width: 0;
+}
+
+.ef-data-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.ef-data-value {
+  font-size: 0.92rem;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tables                                                             */
+/* ------------------------------------------------------------------ */
+
+.ef-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ef-table thead th {
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.ef-table tbody td {
+  padding: 0.6rem 0.8rem;
+  vertical-align: middle;
+}
+
+.ef-table tbody tr + tr td {
+  border-top: 1px solid var(--rule-soft);
+}
+
+.ef-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--signal) 4%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Modal / overlay                                                    */
+/* ------------------------------------------------------------------ */
+
+.ef-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.ef-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 90vh;
+  border: 1px solid var(--rule);
+  background: var(--panel-strong);
+  box-shadow: var(--panel-shadow);
+  overflow: hidden;
+}
+
+.ef-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Toast                                                              */
+/* ------------------------------------------------------------------ */
+
+.ef-toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--rule);
+  background: var(--panel-strong);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.ef-toast::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+}
+
+.ef-toast--success::before {
+  background: var(--success);
+}
+
+.ef-toast--error::before {
+  background: var(--danger);
+}
+
+.ef-toast--info::before {
+  background: var(--signal);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Empty state                                                        */
+/* ------------------------------------------------------------------ */
+
+.ef-empty {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px dashed var(--rule);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Boot spinner                                                       */
+/* ------------------------------------------------------------------ */
+
+.ef-spinner {
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 2px solid var(--rule);
+  border-top-color: var(--signal);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shell — app frame                                                  */
+/* ------------------------------------------------------------------ */
+
+.ef-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ef-frame {
+  flex: 1;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 15.5rem 1fr;
+  min-height: 100vh;
+}
+
+/* charcoal dock (left rail) */
+.ef-dock {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--dock);
+  color: var(--paper);
+  border-right: 1px solid var(--dock-rule);
+}
+
+.ef-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1.1rem 1.1rem 0.9rem;
+}
+
+.ef-brand-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: var(--signal);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--signal) 30%, transparent);
+}
+
+.ef-brand-code {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.ef-brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  line-height: 1;
+}
+
+.ef-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.5rem 0.6rem 1rem;
+}
+
+.ef-nav-caption {
+  padding: 0.9rem 0.6rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(242, 242, 240, 0.42);
+}
+
+.ef-navbtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 2.7rem;
+  padding: 0.45rem 0.7rem;
+  text-align: left;
+  color: rgba(242, 242, 240, 0.72);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.ef-navbtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--paper);
+}
+
+.ef-navbtn[aria-current='page'] {
+  background: rgba(255, 250, 0, 0.1);
+  color: #ffffff;
+}
+
+.ef-navbtn[aria-current='page']::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--signal);
+}
+
+.ef-navbtn .ef-navbtn-idx {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(242, 242, 240, 0.38);
+  min-width: 1.6rem;
+}
+
+.ef-navbtn[aria-current='page'] .ef-navbtn-idx {
+  color: var(--signal);
+  font-weight: 700;
+}
+
+.ef-navbtn svg {
+  flex: none;
+  opacity: 0.85;
+}
+
+.ef-navbtn-label {
+  font-size: 0.84rem;
+  flex: 1;
+}
+
+.ef-dockfoot {
+  margin-top: auto;
+  padding: 0.8rem 0.9rem 0.9rem;
+  border-top: 1px solid var(--dock-rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ef-dockfoot .ef-code {
+  color: rgba(242, 242, 240, 0.5);
+}
+
+/* workspace column */
+.ef-workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* charcoal topbar */
+.ef-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  background: var(--dock);
+  color: var(--paper);
+  border-bottom: 1px solid var(--dock-rule);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ef-top-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: rgba(242, 242, 240, 0.78);
+}
+
+.ef-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 0;
+  background: var(--state);
+  box-shadow: 0 0 0 0 var(--state);
+  animation: status-pulse 2.4s ease-out infinite;
+}
+
+.ef-top-clocks {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgba(242, 242, 240, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.ef-top-clocks .ef-clock-cst {
+  color: var(--signal);
+}
+
+/* metric strip */
+.ef-metrics {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0;
+}
+
+.ef-pagehead {
+  padding-bottom: 0.25rem;
+}
+
+.ef-metric {
+  padding: 0.7rem 0.9rem 0.8rem;
+  border: 1px solid var(--rule);
+  background: var(--panel-strong);
+  border-top: 3px solid var(--signal);
+  box-shadow: var(--panel-shadow);
+}
+
+.ef-metric-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.ef-metric-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* content column */
+.ef-content {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }

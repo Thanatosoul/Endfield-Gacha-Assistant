@@ -17,13 +17,20 @@ export const ToastViewport = memo(function ToastViewport({
       {notifications.map((notification) => (
         <div
           key={notification.id}
-          className="pointer-events-auto panel-strong rounded-3xl p-4 shadow-2xl"
+          className={[
+            'ef-toast pointer-events-auto',
+            notification.tone === 'success'
+              ? 'ef-toast--success'
+              : notification.tone === 'error'
+                ? 'ef-toast--error'
+                : 'ef-toast--info',
+          ].join(' ')}
         >
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex w-full items-start justify-between gap-3">
             <div>
               <div
                 className={[
-                  'text-xs uppercase tracking-[0.18em]',
+                  'text-xs font-semibold uppercase tracking-[0.18em]',
                   notification.tone === 'success'
                     ? 'text-[color:var(--success)]'
                     : notification.tone === 'error'
@@ -39,9 +46,10 @@ export const ToastViewport = memo(function ToastViewport({
             <button
               type="button"
               onClick={() => onDismiss(notification.id)}
-              className="rounded-full border border-[color:var(--panel-border)] px-2 py-1 text-xs text-muted"
+              className="ef-btn ef-btn--sm shrink-0 px-2"
+              aria-label="关闭"
             >
-              Close
+              ✕
             </button>
           </div>
         </div>
