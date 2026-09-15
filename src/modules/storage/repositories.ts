@@ -8,6 +8,20 @@ async function resolveDatabase(database?: Database): Promise<Database> {
   return database ?? getDatabase();
 }
 
+// SQLite rejects statements that bind more than SQLITE_MAX_VARIABLE_NUMBER
+// parameters (999 on conservative builds, e.g. sqlx's bundled SQLite). Bulk
+// inserts are therefore split into batches that stay below that ceiling.
+const SQL_VARIABLE_LIMIT = 900;
+
+function chunkByVariables<T>(items: T[], columns: number): T[][] {
+  const batchSize = Math.max(1, Math.floor(SQL_VARIABLE_LIMIT / columns));
+  const batches: T[][] = [];
+  for (let index = 0; index < items.length; index += batchSize) {
+    batches.push(items.slice(index, index + batchSize));
+  }
+  return batches;
+}
+
 export async function upsertGameAccount(account: GameAccount, database?: Database): Promise<void> {
   const db = await resolveDatabase(database);
   await db.execute(
@@ -43,38 +57,45 @@ export async function upsertGachaRecords(records: GachaRecord[], database?: Data
 
   const poolOrders = await assignMissingPoolOrders(deduped, db);
 
-  const placeholders = deduped.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
-  const params: unknown[] = [];
-  for (const record of deduped) {
-    params.push(
-      record.record_uid,
-      record.account_id,
-      record.region,
-      record.category,
-      record.pool_type,
-      record.pool_id,
-      record.pool_name,
-      record.item_id,
-      record.item_name,
-      record.rarity,
-      Number(record.is_new),
-      Number(record.is_free),
-      record.weapon_type,
-      record.gacha_ts,
-      record.seq_id,
-      poolOrders.get(record.record_uid) ?? record.pool_order,
-      record.fetched_at,
+  const columns = 17;
+  let rowsAffected = 0;
+
+  for (const batch of chunkByVariables(deduped, columns)) {
+    const placeholders = batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+    const params: unknown[] = [];
+    for (const record of batch) {
+      params.push(
+        record.record_uid,
+        record.account_id,
+        record.region,
+        record.category,
+        record.pool_type,
+        record.pool_id,
+        record.pool_name,
+        record.item_id,
+        record.item_name,
+        record.rarity,
+        Number(record.is_new),
+        Number(record.is_free),
+        record.weapon_type,
+        record.gacha_ts,
+        record.seq_id,
+        poolOrders.get(record.record_uid) ?? record.pool_order,
+        record.fetched_at,
+      );
+    }
+
+    const result = await db.execute(
+      `INSERT OR IGNORE INTO gacha_records (
+        record_uid, account_id, region, category, pool_type, pool_id, pool_name,
+        item_id, item_name, rarity, is_new, is_free, weapon_type, gacha_ts, seq_id, pool_order, fetched_at
+      ) VALUES ${placeholders}`,
+      params,
     );
+    rowsAffected += result.rowsAffected;
   }
 
-  const result = await db.execute(
-    `INSERT OR IGNORE INTO gacha_records (
-      record_uid, account_id, region, category, pool_type, pool_id, pool_name,
-      item_id, item_name, rarity, is_new, is_free, weapon_type, gacha_ts, seq_id, pool_order, fetched_at
-    ) VALUES ${placeholders}`,
-    params,
-  );
-  return result.rowsAffected;
+  return rowsAffected;
 }
 
 export async function listGachaRecords(database?: Database): Promise<GachaRecord[]> {
@@ -184,40 +205,44 @@ export async function saveMetadataSnapshot(metadata: PoolMetadata[], database?: 
   if (!Array.isArray(metadata) || metadata.length === 0) return;
   const db = await resolveDatabase(database);
 
-  const placeholders = metadata.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
-  const params: unknown[] = [];
-  for (const entry of metadata) {
-    params.push(
-      entry.pool_id,
-      entry.category,
-      entry.pool_type,
-      entry.pool_name,
-      entry.up6_name,
-      JSON.stringify(entry.up5_names),
-      JSON.stringify(entry.items),
-      '',
-      entry.valid_from,
-      entry.valid_to,
-      entry.version,
+  const columns = 11;
+
+  for (const batch of chunkByVariables(metadata, columns)) {
+    const placeholders = batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+    const params: unknown[] = [];
+    for (const entry of batch) {
+      params.push(
+        entry.pool_id,
+        entry.category,
+        entry.pool_type,
+        entry.pool_name,
+        entry.up6_name,
+        JSON.stringify(entry.up5_names),
+        JSON.stringify(entry.items),
+        '',
+        entry.valid_from,
+        entry.valid_to,
+        entry.version,
+      );
+    }
+
+    await db.execute(
+      `INSERT INTO metadata (
+        pool_id, category, pool_type, pool_name, up6_name,
+        up5_names_json, items_json, image_refs, valid_from, valid_to, version
+      ) VALUES ${placeholders}
+      ON CONFLICT(pool_id) DO UPDATE SET
+        category = excluded.category,
+        pool_type = excluded.pool_type,
+        pool_name = excluded.pool_name,
+        up6_name = excluded.up6_name,
+        up5_names_json = excluded.up5_names_json,
+        items_json = excluded.items_json,
+        image_refs = excluded.image_refs,
+        valid_from = excluded.valid_from,
+        valid_to = excluded.valid_to,
+        version = excluded.version`,
+      params,
     );
   }
-
-  await db.execute(
-    `INSERT INTO metadata (
-      pool_id, category, pool_type, pool_name, up6_name,
-      up5_names_json, items_json, image_refs, valid_from, valid_to, version
-    ) VALUES ${placeholders}
-    ON CONFLICT(pool_id) DO UPDATE SET
-      category = excluded.category,
-      pool_type = excluded.pool_type,
-      pool_name = excluded.pool_name,
-      up6_name = excluded.up6_name,
-      up5_names_json = excluded.up5_names_json,
-      items_json = excluded.items_json,
-      image_refs = excluded.image_refs,
-      valid_from = excluded.valid_from,
-      valid_to = excluded.valid_to,
-      version = excluded.version`,
-    params,
-  );
 }
