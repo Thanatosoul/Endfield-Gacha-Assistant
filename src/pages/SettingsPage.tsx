@@ -1,17 +1,38 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { Cloud, Download, RefreshCw } from 'lucide-react';
+import { Cloud, Download, RefreshCw, Upload } from 'lucide-react';
 import { useData } from '@/app/hooks/contexts';
 import { getSecurePreference, saveSecurePreference } from '@/modules/storage/repositories';
 import { isTauriRuntime } from '@/lib/runtime';
+import {
+  BACKUP_PASSWORD_REQUIRED,
+  backupToFile,
+  backupToWebdav,
+  pickBackupFile,
+  restoreFromFile,
+  restoreFromWebdav,
+} from '@/modules/backup/service';
+import type { BackupRestoreResult } from '@/modules/backup/types';
 
 const WDAV_URL_KEY = 'webdav.url';
 const WDAV_USER_KEY = 'webdav.user';
 const WDAV_PASS_KEY = 'webdav.pass';
 
+function friendlyBackupError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message === BACKUP_PASSWORD_REQUIRED) {
+    return '该备份已加密，请在上方「备份密码」中输入密码后重试。';
+  }
+  return message;
+}
+
+function describeRestore(result: BackupRestoreResult): string {
+  return `恢复完成：${result.accounts} 个账号，${result.records} 条记录，${result.preferences} 项设置。`;
+}
+
 export const SettingsPage = memo(function SettingsPage() {
-  const { storageState, pathsLabel, exportJson, importJson, exportCsv, importCsv, syncAssets } = useData();
+  const { storageState, pathsLabel, exportJson, importJson, exportCsv, importCsv, syncAssets, refresh } = useData();
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [csvMsg, setCsvMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [assetMsg, setAssetMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -52,6 +73,8 @@ export const SettingsPage = memo(function SettingsPage() {
   const [wdavBacking, setWdavBacking] = useState(false);
   const [wdavBackups, setWdavBackups] = useState<string[]>([]);
   const [wdavRestoring, setWdavRestoring] = useState(false);
+  const [wdavEncrypt, setWdavEncrypt] = useState(false);
+  const [wdavPassword, setWdavPassword] = useState('');
 
   // Load saved configs
   useEffect(() => {
@@ -153,13 +176,17 @@ export const SettingsPage = memo(function SettingsPage() {
 
   const handleWdavBackup = async () => {
     if (!isTauriRuntime()) { setWdavMsg({ ok: false, text: '仅桌面端可用' }); return; }
+    if (wdavEncrypt && !wdavPassword.trim()) { setWdavMsg({ ok: false, text: '请先输入加密密码' }); return; }
     setWdavBacking(true);
     try {
-      const dataDir = await invoke<string>('pool_source_dir');
-      const name = await invoke<string>('webdav_backup', { url: wdavUrl, username: wdavUser, password: wdavPass, dataDir });
-      setWdavMsg({ ok: true, text: `备份成功: ${name}` });
+      const result = await backupToWebdav(
+        { url: wdavUrl, user: wdavUser, pass: wdavPass },
+        wdavEncrypt ? wdavPassword : undefined,
+      );
+      setWdavMsg({ ok: true, text: `备份成功：${result.name}${result.encrypted ? '（已加密）' : '（未加密）'}` });
+      await handleWdavList();
     } catch (e) {
-      setWdavMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
+      setWdavMsg({ ok: false, text: friendlyBackupError(e) });
     } finally {
       setWdavBacking(false);
     }
@@ -170,6 +197,7 @@ export const SettingsPage = memo(function SettingsPage() {
     try {
       const list = await invoke<string[]>('webdav_list_backups', { url: wdavUrl, username: wdavUser, password: wdavPass });
       setWdavBackups(list);
+      if (list.length === 0) setWdavMsg({ ok: true, text: '服务器上暂无备份' });
     } catch (e) {
       setWdavMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
     }
@@ -179,11 +207,41 @@ export const SettingsPage = memo(function SettingsPage() {
     if (!isTauriRuntime()) return;
     setWdavRestoring(true);
     try {
-      const dataDir = await invoke<string>('pool_source_dir');
-      await invoke('webdav_restore', { url: wdavUrl, username: wdavUser, password: wdavPass, dataDir, backupName: name });
-      setWdavMsg({ ok: true, text: `已恢复: ${name}。请重启应用。` });
+      const result = await restoreFromWebdav({ url: wdavUrl, user: wdavUser, pass: wdavPass }, name, wdavPassword);
+      await refresh();
+      setWdavMsg({ ok: true, text: describeRestore(result) });
     } catch (e) {
-      setWdavMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
+      setWdavMsg({ ok: false, text: friendlyBackupError(e) });
+    } finally {
+      setWdavRestoring(false);
+    }
+  };
+
+  const handleWdavBackupToFile = async () => {
+    if (!isTauriRuntime()) { setWdavMsg({ ok: false, text: '仅桌面端可用' }); return; }
+    if (wdavEncrypt && !wdavPassword.trim()) { setWdavMsg({ ok: false, text: '请先输入加密密码' }); return; }
+    setWdavBacking(true);
+    try {
+      const path = await backupToFile(wdavEncrypt ? wdavPassword : undefined);
+      if (path) setWdavMsg({ ok: true, text: `已导出备份文件：${path}` });
+    } catch (e) {
+      setWdavMsg({ ok: false, text: friendlyBackupError(e) });
+    } finally {
+      setWdavBacking(false);
+    }
+  };
+
+  const handleWdavRestoreFromFile = async () => {
+    if (!isTauriRuntime()) return;
+    setWdavRestoring(true);
+    try {
+      const path = await pickBackupFile();
+      if (!path) return;
+      const result = await restoreFromFile(path, wdavPassword);
+      await refresh();
+      setWdavMsg({ ok: true, text: describeRestore(result) });
+    } catch (e) {
+      setWdavMsg({ ok: false, text: friendlyBackupError(e) });
     } finally {
       setWdavRestoring(false);
     }
@@ -243,19 +301,41 @@ export const SettingsPage = memo(function SettingsPage() {
                 <input type="password" value={wdavPass} onChange={(e) => setWdavPass(e.target.value)}
                   placeholder="密码" className="ef-field" />
               </div>
+              <input type="password" value={wdavPassword} onChange={(e) => setWdavPassword(e.target.value)}
+                placeholder="备份密码（加密备份 / 恢复加密备份时使用）" className="ef-field" />
+              <label className="flex items-center gap-2 text-xs text-muted">
+                <input type="checkbox" checked={wdavEncrypt} onChange={(e) => setWdavEncrypt(e.target.checked)}
+                  className="h-3.5 w-3.5" />
+                使用密码加密本次备份（跨设备恢复时必须使用同一密码）
+              </label>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
               <ActionBtn onClick={() => void saveWdavConfig()}>保存配置</ActionBtn>
               <ActionBtn onClick={() => void handleWdavTest()}>{wdavTesting ? '测试中…' : '测试连接'}</ActionBtn>
-              <ActionBtn onClick={() => void handleWdavBackup()}>{wdavBacking ? '备份中…' : '立即备份'}</ActionBtn>
+              <ActionBtn onClick={() => void handleWdavBackup()} disabled={wdavBacking}>{wdavBacking ? '备份中…' : '备份到 WebDAV'}</ActionBtn>
+              <ActionBtn onClick={() => void handleWdavBackupToFile()} disabled={wdavBacking}>
+                <Upload className="inline h-3 w-3" /> 备份到文件
+              </ActionBtn>
             </div>
 
-            <div className="mt-3">
-              <button type="button" onClick={() => void handleWdavList()}
-                className="ef-btn ef-btn--sm">
-                列出备份
-              </button>
+            <p className="mt-4 text-xs text-muted">
+              备份包含账号、抽卡记录、应用设置与 Token。选择不加密则备份为明文，仅建议存放在可信位置；
+              选择加密后，在任意设备上恢复都需要输入同一密码。
+            </p>
+
+            <div className="mt-3 border-t border-[color:var(--rule)] pt-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => void handleWdavList()}
+                  className="ef-btn ef-btn--sm">
+                  刷新备份列表
+                </button>
+                <button type="button" onClick={() => void handleWdavRestoreFromFile()}
+                  disabled={wdavRestoring}
+                  className="ef-btn ef-btn--sm">
+                  <Upload className="inline h-3 w-3" /> 从文件恢复
+                </button>
+              </div>
               {wdavBackups.length > 0 && (
                 <div className="mt-2 max-h-32 overflow-auto border border-[color:var(--rule)] p-1">
                   {wdavBackups.map((name) => (
