@@ -46,13 +46,31 @@ export interface UserBindingsResponse {
   };
 }
 
+/** Runtime pool tabs returned by ef-webview /api/record/char/meta. */
+export interface OfficialCharacterPoolTab {
+  key: string;
+  label?: string;
+  poolType: string;
+  poolId?: string;
+}
+
+export interface CharacterPoolMetaResponse {
+  code: number;
+  msg: string;
+  data?: {
+    tabs: OfficialCharacterPoolTab[];
+    beginnerPullCount?: number;
+  };
+}
+
+/** Fallback tabs used only when the runtime metadata endpoint returns no tabs. */
 export const CHARACTER_POOL_TYPES = [
   'E_CharacterGachaPoolType_Special',
   'E_CharacterGachaPoolType_Standard',
   'E_CharacterGachaPoolType_Beginner',
 ] as const;
 
-export type CharacterPoolType = (typeof CHARACTER_POOL_TYPES)[number];
+export type CharacterPoolType = string;
 export type WeaponPoolType = 'E_WeaponGachaPoolType_All';
 
 export interface OfficialCharacterRecord {
@@ -65,6 +83,8 @@ export interface OfficialCharacterRecord {
   poolName: string;
   rarity: number;
   seqId: string;
+  /** Pool type from the runtime meta tab used for this request. */
+  poolType?: string;
 }
 
 export interface OfficialWeaponRecord {
@@ -100,6 +120,7 @@ export interface WeaponGachaResponse {
 export interface FetchCharacterPoolPageInput {
   u8Token: string;
   poolType: CharacterPoolType;
+  poolId?: string;
   seqId?: string;
 }
 
@@ -134,7 +155,7 @@ export interface FetchAllGachaOptions extends OfficialApiOptions {
 }
 
 export interface AllOfficialGachaRecords {
-  character: Record<CharacterPoolType, OfficialCharacterRecord[]>;
+  character: Record<string, OfficialCharacterRecord[]>;
   weapon: Record<WeaponPoolType, OfficialWeaponRecord[]>;
 }
 

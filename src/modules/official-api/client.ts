@@ -2,6 +2,8 @@ import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import { isTauriRuntime } from '@/lib/runtime';
 import type {
   AllOfficialGachaRecords,
+  CharacterPoolMetaResponse,
+  OfficialCharacterPoolTab,
   CharacterGachaResponse,
   CharacterPoolType,
   FetchAllGachaOptions,
@@ -215,6 +217,39 @@ export class OfficialApiClient {
     return token;
   }
 
+  async fetchCharacterPoolMeta(u8Token: string, options?: OfficialApiOptions): Promise<OfficialCharacterPoolTab[]> {
+    const query = new URLSearchParams({
+      lang: options?.lang ?? 'zh-cn',
+      token: u8Token,
+      server_id: normalizeServerId(options),
+    });
+    const url = `https://ef-webview.${providerToDomain()}/api/record/char/meta?${query.toString()}`;
+    const response = await this.fetcher(url, {
+      method: 'GET',
+      headers: { 'User-Agent': this.userAgent },
+      signal: options?.signal,
+    });
+    if (!response.ok) throw new HttpError('fetchCharacterPoolMeta failed', response.status, url);
+    const json = (await response.json()) as Omit<CharacterPoolMetaResponse, 'data'> & {
+      data?: {
+        tabs?: Array<{
+          key?: string;
+          label?: string;
+          poolType?: string;
+          pool_type?: string;
+          poolId?: string;
+          pool_id?: string;
+        }>;
+      };
+    };
+    if (json.code !== 0) throw new Error(`fetchCharacterPoolMeta: api error code=${json.code} msg=${json.msg}`);
+    return (json.data?.tabs ?? []).flatMap((tab) => {
+      const poolType = tab.poolType ?? tab.pool_type;
+      if (!tab.key || !poolType) return [];
+      return [{ key: tab.key, label: tab.label, poolType, poolId: tab.poolId ?? tab.pool_id }];
+    });
+  }
+
   async fetchCharacterPoolPage(
     input: FetchCharacterPoolPageInput,
     options?: OfficialApiOptions,
@@ -225,6 +260,8 @@ export class OfficialApiClient {
       server_id: normalizeServerId(options),
       pool_type: input.poolType,
     });
+
+    if (input.poolId) query.set('pool_id', input.poolId);
 
     if (input.seqId) {
       query.set('seq_id', input.seqId);
@@ -298,23 +335,28 @@ export class OfficialApiClient {
     const categorySwitchDelayMs = options?.categorySwitchDelayMs ?? 2000;
 
     const character = {} as AllOfficialGachaRecords['character'];
-    for (let index = 0; index < CHARACTER_POOL_TYPES.length; index += 1) {
-      const poolType = CHARACTER_POOL_TYPES[index];
+    const tabs = await this.fetchCharacterPoolMeta(u8Token, options);
+    const runtimeTabs: OfficialCharacterPoolTab[] =
+      tabs.length > 0 ? tabs : CHARACTER_POOL_TYPES.map((poolType) => ({ key: poolType, poolType }));
+    for (let index = 0; index < runtimeTabs.length; index += 1) {
+      const tab = runtimeTabs[index];
+      const poolType = tab.poolType;
       const existingSeqIds = options?.existingCharacterSeqIdsByPool?.[poolType];
-      character[poolType] = await this.fetchAllCharacterPoolRecords(u8Token, poolType, {
+      character[tab.key] = await this.fetchAllCharacterPoolRecords(u8Token, poolType, {
         ...options,
+        poolId: tab.poolId,
         existingSeqIds,
         onFetched: (recordsFetched) =>
           options?.onProgress?.({
             category: 'character',
             poolType,
             poolIndex: index + 1,
-            totalPools: CHARACTER_POOL_TYPES.length + 1,
+            totalPools: runtimeTabs.length + 1,
             recordsFetched,
           }),
       });
 
-      if (index < CHARACTER_POOL_TYPES.length - 1) {
+      if (index < runtimeTabs.length - 1) {
         await sleepAbortable(randomInt(poolSwitchMinDelayMs, poolSwitchMaxDelayMs), options?.signal);
       }
     }
@@ -328,8 +370,8 @@ export class OfficialApiClient {
         options?.onProgress?.({
           category: 'weapon',
           poolType: 'E_WeaponGachaPoolType_All',
-          poolIndex: CHARACTER_POOL_TYPES.length + 1,
-          totalPools: CHARACTER_POOL_TYPES.length + 1,
+          poolIndex: runtimeTabs.length + 1,
+          totalPools: runtimeTabs.length + 1,
           recordsFetched,
         }),
     });
@@ -346,6 +388,7 @@ export class OfficialApiClient {
     u8Token: string,
     poolType: CharacterPoolType,
     options?: OfficialApiOptions & {
+      poolId?: string;
       existingSeqIds?: Set<string>;
       onFetched?: (count: number) => void;
       minDelayMs?: number;
@@ -357,7 +400,10 @@ export class OfficialApiClient {
 
     for (;;) {
       throwIfAborted(options?.signal);
-      const page = await this.fetchCharacterPoolPage(seqId ? { u8Token, poolType, seqId } : { u8Token, poolType }, options);
+      const page = await this.fetchCharacterPoolPage(
+        seqId ? { u8Token, poolType, poolId: options?.poolId, seqId } : { u8Token, poolType, poolId: options?.poolId },
+        options,
+      );
       if (!page.list.length) {
         break;
       }
@@ -369,7 +415,7 @@ export class OfficialApiClient {
           options?.onFetched?.(all.length);
           return all;
         }
-        batch.push(record);
+        batch.push({ ...record, poolType });
       }
 
       all.push(...batch);

@@ -1,4 +1,4 @@
-import type { GachaCategory, GachaRarity, PoolMetadata } from '@/domain/types';
+import type { GachaCategory, GachaRarity, PoolKind, PoolMetadata } from '@/domain/types';
 
 export const ASSET_REPOSITORY_URL = 'https://raw.githubusercontent.com/Thanatosoul/Endfield-Gacha-Assets/master/public';
 const INDEX_URL = `${ASSET_REPOSITORY_URL}/data/index.json`;
@@ -25,6 +25,12 @@ function asString(value: unknown): string {
 
 function asRarity(value: unknown): GachaRarity | null {
   return value === 3 || value === 4 || value === 5 || value === 6 ? value : null;
+}
+
+function asPoolKind(value: unknown): PoolKind | undefined {
+  return value === 'beginner' || value === 'standard' || value === 'special' || value === 'joint' || value === 'rerun' || value === 'weapon'
+    ? value
+    : undefined;
 }
 
 function parseIndex(value: unknown): RemoteIndex {
@@ -58,6 +64,7 @@ function parsePool(id: string, value: unknown, version: string): PoolMetadata | 
     pool_id: id,
     category,
     pool_type: asString(pool?.pool_type) || 'unknown',
+    pool_kind: asPoolKind(pool?.pool_kind),
     pool_name: poolName,
     up6_name: asString(pool?.up6_name),
     up5_names: up5Names,

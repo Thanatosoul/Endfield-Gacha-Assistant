@@ -1,5 +1,6 @@
 import type { GachaCategory, GachaRecord, PoolMetadata } from '@/domain/types';
 import { compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
+import { classifyPoolKind, type PoolKind } from '@/modules/pool-management/poolKind';
 
 export interface SummaryMetrics {
   totalPulls: number;
@@ -27,6 +28,7 @@ export interface PoolSummary {
   poolId: string;
   poolName: string;
   category: GachaCategory;
+  poolKind: PoolKind;
   pulls: number;
   freePulls: number;
   sixStarHits: number;
@@ -231,6 +233,7 @@ export function summarizePools(records: GachaRecord[], metadata: Map<string, Poo
       poolId: record.pool_id,
       poolName: record.pool_name,
       category: record.category,
+      poolKind: metadata.get(record.pool_id)?.pool_kind ?? classifyPoolKind(record.pool_id, record.pool_type, record.category),
       pulls: 0,
       freePulls: 0,
       sixStarHits: 0,
@@ -269,7 +272,7 @@ export function selectFeaturedPools(allPools: PoolSummary[]): PoolSummary[] {
     return id === 'standard' || id.startsWith('standard');
   });
 
-  const limitedChars = charPools.filter((p) => p.poolId.toLowerCase().startsWith('special'));
+  const limitedChars = charPools.filter((p) => p.poolKind === 'special' || p.poolKind === 'joint' || p.poolKind === 'rerun');
   const latestLimitedChar = limitedChars[limitedChars.length - 1];
 
   const limitedWpns = wpnPools.filter((p) => {

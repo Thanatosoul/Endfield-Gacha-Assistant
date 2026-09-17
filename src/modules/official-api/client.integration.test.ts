@@ -38,15 +38,29 @@ describe('OfficialApiClient integration flow', () => {
         return jsonResponse({ data: { token: 'u8-token' } });
       }
 
+      if (url.includes('/api/record/char/meta')) {
+        return jsonResponse({
+          code: 0,
+          msg: 'ok',
+          data: {
+            tabs: [
+              { key: 'special', label: 'Special', pool_type: 'E_CharacterGachaPoolType_Special' },
+              { key: 'joint:joint_1_2_2', label: 'Joint', pool_type: 'E_CharacterGachaPoolType_Joint', pool_id: 'joint_1_2_2' },
+            ],
+          },
+        });
+      }
+
       if (url.includes('/api/record/char')) {
         const parsed = new URL(url);
         const poolType = parsed.searchParams.get('pool_type');
+        const poolId = parsed.searchParams.get('pool_id');
         return jsonResponse({
           code: 0,
           msg: 'ok',
           data: {
             list:
-              poolType === 'E_CharacterGachaPoolType_Special'
+              poolType === 'E_CharacterGachaPoolType_Special' && !poolId
                 ? [
                     {
                       charId: 'char_001',
@@ -110,7 +124,10 @@ describe('OfficialApiClient integration flow', () => {
       categorySwitchDelayMs: 0,
     });
 
-    expect(all.character.E_CharacterGachaPoolType_Special).toHaveLength(1);
+    expect(all.character.special).toHaveLength(1);
+    expect(all.character.special[0]?.poolType).toBe('E_CharacterGachaPoolType_Special');
+    expect(all.character['joint:joint_1_2_2']).toEqual([]);
+    expect(fetcher).toHaveBeenCalledWith(expect.stringContaining('pool_id=joint_1_2_2'), expect.anything());
     expect(all.weapon.E_WeaponGachaPoolType_All).toHaveLength(1);
   });
 
@@ -119,6 +136,10 @@ describe('OfficialApiClient integration flow', () => {
 
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.includes('/api/record/char/meta')) {
+        return jsonResponse({ code: 0, msg: 'ok', data: { tabs: [] } });
+      }
+
       if (url.includes('/api/record/char')) {
         controller.abort();
         return jsonResponse({

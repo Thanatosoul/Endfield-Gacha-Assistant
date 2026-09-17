@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import { getPoolImageCandidates, readPoolJsonMerged } from '@/modules/pool-management/files';
 import type { GachaCategory, GachaRecord } from '@/domain/types';
 import type { PoolSummary } from '@/modules/stats-engine/summary';
+import type { CharacterPoolKind } from '@/modules/pool-management/poolKind';
 import { RarityDonut } from '@/components/RarityDonut';
 import { PullTimeline } from '@/components/PullTimeline';
 import { compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
@@ -19,23 +20,19 @@ interface PoolBrowserPageProps {
 }
 
 export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSummaries, records }: PoolBrowserPageProps) {
-  const [tab, setTab] = useState<'limited' | 'secondary' | 'beginner'>('limited');
+  const [tab, setTab] = useState<CharacterPoolKind | 'weapon-limited' | 'weapon-standard'>('special');
   const [selectedPool, setSelectedPool] = useState<PoolSummary | null>(null);
   const [editingPoolId, setEditingPoolId] = useState<string | null>(null);
   const [assetsVersion, setAssetsVersion] = useState(0);
 
+  useEffect(() => {
+    setTab(category === 'character' ? 'special' : 'weapon-limited');
+  }, [category]);
+
   const pools = useMemo(() => {
     const all = poolSummaries.filter((p) => p.category === category);
     if (category === 'character') {
-      const limited = all.filter((p) => p.poolId.toLowerCase().startsWith('special'));
-      const basic = all.filter((p) => {
-        const id = p.poolId.toLowerCase();
-        return id === 'standard' || id.startsWith('standard');
-      });
-      const beginner = all.filter((p) => p.poolId.toLowerCase() === 'beginner' || p.poolId.toLowerCase().startsWith('beginner'));
-      if (tab === 'limited') return limited;
-      if (tab === 'beginner') return beginner;
-      return basic;
+      return all.filter((p) => p.poolKind === tab);
     }
 
     const limited = all.filter((p) => {
@@ -46,7 +43,7 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
       const id = p.poolId.toLowerCase();
       return id.startsWith('weaponbox_constant_') || id.startsWith('weponbox_constant_');
     });
-    return tab === 'limited' ? limited : constant;
+    return tab === 'weapon-limited' ? limited : constant;
   }, [category, poolSummaries, tab]);
 
   // Stable callbacks via ref to avoid re-creating functions in .map()
@@ -129,44 +126,47 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
         </div>
 
         <div className="mt-4 flex gap-2 border-b border-[color:var(--panel-border)]">
-          <button
+          {category === 'character' && (['special', 'joint', 'rerun', 'standard', 'beginner'] as const).map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => setTab(kind)}
+              className={[
+                'px-3 py-2 text-sm font-medium transition-colors',
+                tab === kind
+                  ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
+                  : 'text-muted hover:text-[color:var(--text-main)]',
+              ].join(' ')}
+            >
+              {{ special: '限定寻访', joint: '联合寻访', rerun: '复刻寻访', standard: '常驻寻访', beginner: '新手寻访' }[kind]}
+            </button>
+          ))}
+          {category === 'weapon' && <button
             type="button"
-            onClick={() => setTab('limited')}
+            onClick={() => setTab('weapon-limited')}
             className={[
               'px-3 py-2 text-sm font-medium transition-colors',
-              tab === 'limited'
+              tab === 'weapon-limited'
                 ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
                 : 'text-muted hover:text-[color:var(--text-main)]',
             ].join(' ')}
           >
             限定寻访
           </button>
-          <button
+          }
+          {category === 'weapon' && <button
             type="button"
-            onClick={() => setTab('secondary')}
+            onClick={() => setTab('weapon-standard')}
             className={[
               'px-3 py-2 text-sm font-medium transition-colors',
-              tab === 'secondary'
+              tab === 'weapon-standard'
                 ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
                 : 'text-muted hover:text-[color:var(--text-main)]',
             ].join(' ')}
           >
-            {category === 'character' ? '基础寻访' : '指定寻访'}
+            指定寻访
           </button>
-          {category === 'character' && (
-            <button
-              type="button"
-              onClick={() => setTab('beginner')}
-              className={[
-                'px-3 py-2 text-sm font-medium transition-colors',
-                tab === 'beginner'
-                  ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
-                  : 'text-muted hover:text-[color:var(--text-main)]',
-              ].join(' ')}
-            >
-              启程寻访
-            </button>
-          )}
+          }
         </div>
       </section>
 

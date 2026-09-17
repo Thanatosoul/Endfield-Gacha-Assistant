@@ -1,6 +1,7 @@
 export type Region = 'cn' | 'global';
 export type GachaCategory = 'character' | 'weapon';
 export type GachaRarity = 3 | 4 | 5 | 6;
+export type PoolKind = 'beginner' | 'standard' | 'special' | 'joint' | 'rerun' | 'weapon';
 
 export interface GachaRecord {
   record_uid: string;
@@ -38,6 +39,7 @@ export interface PoolMetadata {
   pool_id: string;
   category: GachaCategory;
   pool_type: string;
+  pool_kind?: PoolKind;
   pool_name: string;
   up6_name: string;
   up5_names: string[];

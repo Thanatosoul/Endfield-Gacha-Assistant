@@ -8,11 +8,11 @@ export function mapOfficialCharacterRecord(account: GameAccount, record: Officia
     account_id: account.id,
     region: account.region,
     category: 'character',
-    pool_type: lowerPoolId.startsWith('special')
+    pool_type: record.poolType ?? (lowerPoolId.startsWith('special')
       ? 'E_CharacterGachaPoolType_Special'
       : lowerPoolId.startsWith('beginner')
         ? 'E_CharacterGachaPoolType_Beginner'
-        : 'E_CharacterGachaPoolType_Standard',
+        : 'E_CharacterGachaPoolType_Standard'),
     pool_id: record.poolId,
     pool_name: record.poolName,
     item_id: record.charId,

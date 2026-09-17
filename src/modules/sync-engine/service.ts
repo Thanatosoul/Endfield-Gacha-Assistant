@@ -1,6 +1,5 @@
 import type { GameAccount, GachaRecord } from '@/domain/types';
 import { OfficialApiClient, OfficialRiskControlError } from '@/modules/official-api/client';
-import { CHARACTER_POOL_TYPES } from '@/modules/official-api/types';
 import { appendSyncLog, upsertGachaRecords } from '@/modules/storage/repositories';
 import { getExistingCharacterSeqIdsByPool, getExistingSeqIds } from '@/modules/storage/queries';
 import { mapOfficialCharacterRecord, mapOfficialWeaponRecord } from '@/modules/storage/mappers';
@@ -62,12 +61,6 @@ export class SyncEngine {
         getExistingSeqIds(account.id, 'weapon'),
       ]);
 
-      const existingCharacterSeqIdsByPool = {
-        E_CharacterGachaPoolType_Special: existingCharacterSeqIdsByPoolRaw.E_CharacterGachaPoolType_Special ?? new Set<string>(),
-        E_CharacterGachaPoolType_Standard: existingCharacterSeqIdsByPoolRaw.E_CharacterGachaPoolType_Standard ?? new Set<string>(),
-        E_CharacterGachaPoolType_Beginner: existingCharacterSeqIdsByPoolRaw.E_CharacterGachaPoolType_Beginner ?? new Set<string>(),
-      };
-
       let charFetched = 0;
       let weaponFetched = 0;
 
@@ -75,13 +68,12 @@ export class SyncEngine {
         status: 'fetching_records',
         accountId: account.id,
         category: 'character',
-        totalPools: CHARACTER_POOL_TYPES.length + 1,
         recordsFetched: 0,
       });
 
       const result = await this.api.fetchAllGachaRecords(u8Token, {
         signal,
-        existingCharacterSeqIdsByPool,
+        existingCharacterSeqIdsByPool: existingCharacterSeqIdsByPoolRaw,
         existingWeaponSeqIds,
         onProgress: (progress) => {
           if (progress.category === 'character') {
