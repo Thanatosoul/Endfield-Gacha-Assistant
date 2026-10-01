@@ -1,6 +1,12 @@
 import Database from '@tauri-apps/plugin-sql';
-import type { AppPreference, GameAccount, GachaRecord, PoolMetadata, SyncLogEntry } from '@/domain/types';
+import type { AppPreference, GameAccount, GachaRecord, PoolKind, PoolMetadata, SyncLogEntry } from '@/domain/types';
 import { getDatabase } from '@/modules/storage/database';
+
+const POOL_KINDS: readonly PoolKind[] = ['beginner', 'standard', 'special', 'joint', 'rerun', 'weapon'];
+
+function asPoolKind(value: string | null): PoolKind | undefined {
+  return value !== null && (POOL_KINDS as readonly string[]).includes(value) ? (value as PoolKind) : undefined;
+}
 
 async function resolveDatabase(database?: Database): Promise<Database> {
   return database ?? getDatabase();
@@ -9,12 +15,6 @@ async function resolveDatabase(database?: Database): Promise<Database> {
 export async function listAccounts(database?: Database): Promise<GameAccount[]> {
   const db = await resolveDatabase(database);
   return db.select<GameAccount[]>('SELECT * FROM game_accounts ORDER BY updated_at DESC, created_at DESC');
-}
-
-export async function getAccountById(accountId: string, database?: Database): Promise<GameAccount | null> {
-  const db = await resolveDatabase(database);
-  const rows = await db.select<GameAccount[]>('SELECT * FROM game_accounts WHERE id = ? LIMIT 1', [accountId]);
-  return rows[0] ?? null;
 }
 
 export async function listRecordsByAccount(accountId?: string, database?: Database): Promise<GachaRecord[]> {
@@ -26,10 +26,16 @@ export async function listRecordsByAccount(accountId?: string, database?: Databa
     );
   }
 
-  return db.select<GachaRecord[]>('SELECT * FROM gacha_records ORDER BY account_id, category, pool_id, pool_order DESC');
+  return db.select<GachaRecord[]>(
+    'SELECT * FROM gacha_records ORDER BY account_id, category, pool_id, pool_order DESC',
+  );
 }
 
-export async function getExistingSeqIds(accountId: string, category: GachaRecord['category'], database?: Database): Promise<Set<string>> {
+export async function getExistingSeqIds(
+  accountId: string,
+  category: GachaRecord['category'],
+  database?: Database,
+): Promise<Set<string>> {
   const db = await resolveDatabase(database);
   const rows = await db.select<Array<{ seq_id: string }>>(
     'SELECT seq_id FROM gacha_records WHERE account_id = ? AND category = ?',
@@ -62,23 +68,29 @@ export async function getExistingCharacterSeqIdsByPool(
 
 export async function listMetadata(database?: Database): Promise<PoolMetadata[]> {
   const db = await resolveDatabase(database);
-  const rows = await db.select<Array<{
-    pool_id: string;
-    category: PoolMetadata['category'];
-    pool_type: string;
-    pool_name: string;
-    up6_name: string;
-    up5_names_json: string;
-    items_json: string;
-    valid_from: number;
-    valid_to: number;
-    version: string;
-  }>>('SELECT pool_id, category, pool_type, pool_name, up6_name, up5_names_json, items_json, valid_from, valid_to, version FROM metadata ORDER BY valid_from DESC, pool_id DESC');
+  const rows = await db.select<
+    Array<{
+      pool_id: string;
+      category: PoolMetadata['category'];
+      pool_type: string;
+      pool_kind: string | null;
+      pool_name: string;
+      up6_name: string;
+      up5_names_json: string;
+      items_json: string;
+      valid_from: number;
+      valid_to: number;
+      version: string;
+    }>
+  >(
+    'SELECT pool_id, category, pool_type, pool_kind, pool_name, up6_name, up5_names_json, items_json, valid_from, valid_to, version FROM metadata ORDER BY valid_from DESC, pool_id DESC',
+  );
 
   return rows.map((row) => ({
     pool_id: row.pool_id,
     category: row.category,
     pool_type: row.pool_type,
+    pool_kind: asPoolKind(row.pool_kind),
     pool_name: row.pool_name,
     up6_name: row.up6_name,
     up5_names: JSON.parse(row.up5_names_json) as string[],

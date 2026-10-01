@@ -1,5 +1,6 @@
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import { isTauriRuntime } from '@/lib/runtime';
+import { AppError } from '@/domain/errors';
 import type {
   AllOfficialGachaRecords,
   CharacterPoolMetaResponse,
@@ -24,25 +25,25 @@ type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respo
 const DEFAULT_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.112 Safari/537.36';
 
-export class HttpError extends Error {
+export class HttpError extends AppError {
   readonly status: number;
   readonly url: string;
 
   constructor(message: string, status: number, url: string) {
-    super(message);
+    super('HTTP', message, { details: { status, url } });
     this.name = 'HttpError';
     this.status = status;
     this.url = url;
   }
 }
 
-export class OfficialRiskControlError extends Error {
+export class OfficialRiskControlError extends AppError {
   readonly status: number;
   readonly url: string;
   readonly responseText?: string;
 
   constructor(message: string, status: number, url: string, responseText?: string) {
-    super(message);
+    super('RISK_CONTROL', message, { details: { status, url } });
     this.name = 'OfficialRiskControlError';
     this.status = status;
     this.url = url;
@@ -161,10 +162,12 @@ export class OfficialApiClient {
   }
 
   async listBindings(appToken: string, options?: OfficialApiOptions): Promise<UserBindingsResponse> {
-    const url = `https://binding-api-account-prod.${providerToDomain()}/account/binding/v1/binding_list?${new URLSearchParams({
-      token: appToken,
-      appCode: 'endfield',
-    }).toString()}`;
+    const url = `https://binding-api-account-prod.${providerToDomain()}/account/binding/v1/binding_list?${new URLSearchParams(
+      {
+        token: appToken,
+        appCode: 'endfield',
+      },
+    ).toString()}`;
 
     throwIfAborted(options?.signal);
 
@@ -199,7 +202,12 @@ export class OfficialApiClient {
 
     if (!response.ok) {
       if (response.status === 404 && is404PageNotFound(text)) {
-        throw new OfficialRiskControlError('fetchU8TokenByUid: risk control / rate limited', response.status, url, text);
+        throw new OfficialRiskControlError(
+          'fetchU8TokenByUid: risk control / rate limited',
+          response.status,
+          url,
+          text,
+        );
       }
       throw new HttpError('fetchU8TokenByUid failed', response.status, url);
     }

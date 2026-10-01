@@ -1,5 +1,56 @@
 import { memo } from 'react';
-import type { LimitedCharacterPity, RerunCharacterPity } from '@/modules/stats-engine/banner-rules';
+import {
+  LIMITED_REWARD_MILESTONES,
+  RERUN_CHARACTER_REWARD_MILESTONES,
+  type LimitedCharacterPity,
+  type RerunCharacterPity,
+} from '@/modules/stats-engine/banner-rules';
+
+const LIMITED_MILESTONE_LABELS: Record<number, string> = {
+  30: '加急招募 ×10',
+  60: '寻访情报书 ×1',
+};
+
+const RERUN_MILESTONE_LABELS: Record<number, string> = {
+  30: '加急招募 ×10',
+  60: '加急招募 ×10',
+  90: '加急招募 ×10',
+};
+
+function RewardMilestones({
+  pulls,
+  milestones,
+  labels,
+}: {
+  pulls: number;
+  milestones: readonly number[];
+  labels: Record<number, string>;
+}) {
+  return (
+    <div className="mt-3 border-t border-[color:var(--rule-soft)] pt-2">
+      <div className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-muted">累计奖励（只读参考）</div>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        {milestones.map((milestone) => {
+          const reached = pulls >= milestone;
+          return (
+            <span
+              key={milestone}
+              className={[
+                'border px-2 py-1 text-xs',
+                reached
+                  ? 'border-[color:var(--success)] text-[color:var(--success)]'
+                  : 'border-[color:var(--rule)] text-muted',
+              ].join(' ')}
+            >
+              累计 {milestone} · {labels[milestone]}
+              {reached ? ' ✓' : ''}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function toneFor(ratio: number): string {
   if (ratio >= 1) return '#991b1b';
@@ -65,11 +116,11 @@ export const LimitedPityPanel = memo(function LimitedPityPanel({ pity }: { pity:
         cap={120}
         note={pity.upRemaining === 0 ? '已达保底' : `还差 ${pity.upRemaining}`}
       />
-      <PityBar
-        label="UP 信物（本池 240 抽）"
-        value={pity.tokenProgress}
-        cap={240}
-        note={`已获 ${pity.tokensEarned}`}
+      <PityBar label="UP 信物（本池 240 抽）" value={pity.tokenProgress} cap={240} note={`已获 ${pity.tokensEarned}`} />
+      <RewardMilestones
+        pulls={pity.tokenPulls}
+        milestones={LIMITED_REWARD_MILESTONES}
+        labels={LIMITED_MILESTONE_LABELS}
       />
     </section>
   );
@@ -79,9 +130,7 @@ export const RerunPityPanel = memo(function RerunPityPanel({ pity }: { pity: Rer
   return (
     <section className="ef-sub p-5">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="ef-code">
-          复刻寻访{pity.upName ? ` · ${pity.upName}` : ''}
-        </span>
+        <span className="ef-code">复刻寻访{pity.upName ? ` · ${pity.upName}` : ''}</span>
         <span className="text-xs text-muted">
           {pity.upGuaranteeConsumed ? '该角色一次性 UP 保底已消耗' : '120 抽 UP 保底（同角色跨复刻继承）'}
         </span>
@@ -97,6 +146,11 @@ export const RerunPityPanel = memo(function RerunPityPanel({ pity }: { pity: Rer
         value={pity.tokenProgress}
         cap={240}
         note={`已获 ${pity.tokensEarned}`}
+      />
+      <RewardMilestones
+        pulls={pity.tokenPulls}
+        milestones={RERUN_CHARACTER_REWARD_MILESTONES}
+        labels={RERUN_MILESTONE_LABELS}
       />
     </section>
   );

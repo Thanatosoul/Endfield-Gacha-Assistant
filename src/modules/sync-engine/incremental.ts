@@ -43,23 +43,3 @@ export function collectIncrementalRecords<T extends Pick<GachaRecord, 'seq_id'>>
     visitedPages: pages.length,
   };
 }
-
-export function createSyncCancellation() {
-  let cancelled = false;
-
-  return {
-    cancel() {
-      cancelled = true;
-    },
-    get isCancelled() {
-      return cancelled;
-    },
-  };
-}
-
-export async function waitWithJitter(baseDelayMs: number, varianceMs = 180): Promise<number> {
-  const jitter = Math.round(Math.random() * varianceMs);
-  const total = baseDelayMs + jitter;
-  await new Promise((resolve) => setTimeout(resolve, total));
-  return total;
-}

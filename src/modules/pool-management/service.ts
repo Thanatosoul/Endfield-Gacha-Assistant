@@ -35,41 +35,22 @@ function parseRow(row: {
   };
 }
 
-export async function getAllPoolMetadata(): Promise<PoolMetadata[]> {
-  const db = await getDatabase();
-  const rows = await db.select<Array<{
-    pool_id: string;
-    category: string;
-    pool_type: string;
-    pool_name: string;
-    up6_name: string;
-    up5_names_json: string;
-    items_json: string;
-    valid_from: number;
-    valid_to: number;
-    version: string;
-  }>>(
-    'SELECT pool_id, category, pool_type, pool_name, up6_name, up5_names_json, items_json, valid_from, valid_to, version FROM metadata ORDER BY valid_from DESC',
-    [],
-  );
-
-  return rows.map(parseRow);
-}
-
 export async function getPoolMetadata(poolId: string): Promise<PoolMetadata | null> {
   const db = await getDatabase();
-  const rows = await db.select<Array<{
-    pool_id: string;
-    category: string;
-    pool_type: string;
-    pool_name: string;
-    up6_name: string;
-    up5_names_json: string;
-    items_json: string;
-    valid_from: number;
-    valid_to: number;
-    version: string;
-  }>>(
+  const rows = await db.select<
+    Array<{
+      pool_id: string;
+      category: string;
+      pool_type: string;
+      pool_name: string;
+      up6_name: string;
+      up5_names_json: string;
+      items_json: string;
+      valid_from: number;
+      valid_to: number;
+      version: string;
+    }>
+  >(
     'SELECT pool_id, category, pool_type, pool_name, up6_name, up5_names_json, items_json, valid_from, valid_to, version FROM metadata WHERE pool_id = ?',
     [poolId],
   );

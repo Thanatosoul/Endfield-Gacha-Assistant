@@ -106,4 +106,17 @@ export const STORAGE_SCHEMA = [
     updated_at INTEGER NOT NULL
   )
   `,
+  `
+  ALTER TABLE metadata ADD COLUMN pool_kind TEXT
+  `,
+  // Deleting an account cascades to its records and logs in a single atomic
+  // statement, so a partial failure can never orphan child rows.
+  `
+  CREATE TRIGGER IF NOT EXISTS trg_game_accounts_cascade_delete
+  AFTER DELETE ON game_accounts
+  BEGIN
+    DELETE FROM gacha_records WHERE account_id = OLD.id;
+    DELETE FROM sync_logs WHERE account_id = OLD.id;
+  END
+  `,
 ];

@@ -1,10 +1,12 @@
 import type { GameAccount, GachaRecord } from '@/domain/types';
-import { OfficialApiClient, OfficialRiskControlError } from '@/modules/official-api/client';
+import { isAppError, userMessageFor } from '@/domain/errors';
+import { OfficialApiClient } from '@/modules/official-api/client';
 import { appendSyncLog, upsertGachaRecords } from '@/modules/storage/repositories';
 import { getExistingCharacterSeqIdsByPool, getExistingSeqIds } from '@/modules/storage/queries';
 import { mapOfficialCharacterRecord, mapOfficialWeaponRecord } from '@/modules/storage/mappers';
 
-export type SyncStatus = 'idle' | 'authenticating' | 'fetching_bindings' | 'fetching_records' | 'done' | 'cancelled' | 'error';
+export type SyncStatus =
+  'idle' | 'authenticating' | 'fetching_bindings' | 'fetching_records' | 'done' | 'cancelled' | 'error';
 
 export interface SyncState {
   status: SyncStatus;
@@ -160,8 +162,8 @@ function isAbort(error: unknown): boolean {
 }
 
 function normalizeSyncError(error: unknown): string {
-  if (error instanceof OfficialRiskControlError) {
-    return 'Official API rate limit or risk control triggered. Please try again later.';
+  if (isAppError(error)) {
+    return userMessageFor(error);
   }
 
   return error instanceof Error ? error.message : String(error);

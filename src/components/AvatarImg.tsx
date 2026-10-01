@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { getAssetUrl } from '@/lib/runtime';
 
 interface AvatarImgProps {
@@ -17,6 +17,7 @@ export const AvatarImg = memo(function AvatarImg({
   title,
 }: AvatarImgProps) {
   const [index, setIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const folder = category === 'weapon' ? 'weapon' : 'character';
   const candidates = [
     `${getAssetUrl(`/source/${folder}/${itemId}.png`)}`,
@@ -24,14 +25,34 @@ export const AvatarImg = memo(function AvatarImg({
   ];
   const style = { width: size, height: size };
 
+  useEffect(() => {
+    setIndex(0);
+    setLoaded(false);
+  }, [category, itemId]);
+
   if (index >= candidates.length) {
-    return <span className={`inline-block border-2 border-[color:var(--panel-border)] bg-black/20 ${ringClass}`} style={style} />;
+    return (
+      <span
+        className={`inline-block border-2 border-[color:var(--panel-border)] bg-black/20 ${ringClass}`}
+        style={style}
+      />
+    );
   }
 
   return (
-    <img src={candidates[index]} alt="" title={title}
-      className={`object-cover shrink-0 ${ringClass}`}
-      style={style}
-      onError={() => setIndex((v) => v + 1)} />
+    <img
+      src={candidates[index]}
+      alt=""
+      title={title}
+      loading="lazy"
+      decoding="async"
+      className={`shrink-0 object-cover transition-opacity duration-200 ${ringClass} ${loaded ? 'opacity-100' : 'opacity-0'}`}
+      style={{ ...style, background: 'var(--rule-soft)' }}
+      onLoad={() => setLoaded(true)}
+      onError={() => {
+        setLoaded(false);
+        setIndex((v) => v + 1);
+      }}
+    />
   );
 });

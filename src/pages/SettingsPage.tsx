@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { Cloud, Download, RefreshCw, Upload } from 'lucide-react';
 import { useData } from '@/app/hooks/contexts';
+import { SyncHistoryPanel } from '@/components/SyncHistoryPanel';
 import { getSecurePreference, saveSecurePreference } from '@/modules/storage/repositories';
 import { isTauriRuntime } from '@/lib/runtime';
 import {
@@ -43,14 +44,27 @@ export const SettingsPage = memo(function SettingsPage() {
     let unlistenProgress: (() => void) | undefined;
     let unlistenError: (() => void) | undefined;
     void Promise.all([
-      listen<{ checked: number; total: number; downloaded: number; skipped: number; failed: number; complete: boolean }>('assets:sync-progress', (event) => {
+      listen<{
+        checked: number;
+        total: number;
+        downloaded: number;
+        skipped: number;
+        failed: number;
+        complete: boolean;
+      }>('assets:sync-progress', (event) => {
         const { checked, total, downloaded, skipped, failed, complete } = event.payload;
         if (complete) {
           setSyncingAssets(false);
-          setAssetMsg({ ok: failed === 0, text: `图片同步完成：检查 ${total}，下载 ${downloaded}，跳过 ${skipped}${failed ? `，失败 ${failed}` : ''}` });
+          setAssetMsg({
+            ok: failed === 0,
+            text: `图片同步完成：检查 ${total}，下载 ${downloaded}，跳过 ${skipped}${failed ? `，失败 ${failed}` : ''}`,
+          });
         } else {
           setSyncingAssets(true);
-          setAssetMsg({ ok: true, text: `正在后台检查图片缓存：${checked}/${total}（下载 ${downloaded}，跳过 ${skipped}）` });
+          setAssetMsg({
+            ok: true,
+            text: `正在后台检查图片缓存：${checked}/${total}（下载 ${downloaded}，跳过 ${skipped}）`,
+          });
         }
       }),
       listen<string>('assets:sync-error', (event) => {
@@ -61,7 +75,10 @@ export const SettingsPage = memo(function SettingsPage() {
       unlistenProgress = progress;
       unlistenError = error;
     });
-    return () => { unlistenProgress?.(); unlistenError?.(); };
+    return () => {
+      unlistenProgress?.();
+      unlistenError?.();
+    };
   }, []);
 
   // WebDAV state
@@ -162,7 +179,10 @@ export const SettingsPage = memo(function SettingsPage() {
   }, [wdavUrl, wdavUser, wdavPass]);
 
   const handleWdavTest = async () => {
-    if (!isTauriRuntime()) { setWdavMsg({ ok: false, text: '仅桌面端可用' }); return; }
+    if (!isTauriRuntime()) {
+      setWdavMsg({ ok: false, text: '仅桌面端可用' });
+      return;
+    }
     setWdavTesting(true);
     try {
       const result = await invoke<string>('webdav_test', { url: wdavUrl, username: wdavUser, password: wdavPass });
@@ -175,8 +195,14 @@ export const SettingsPage = memo(function SettingsPage() {
   };
 
   const handleWdavBackup = async () => {
-    if (!isTauriRuntime()) { setWdavMsg({ ok: false, text: '仅桌面端可用' }); return; }
-    if (wdavEncrypt && !wdavPassword.trim()) { setWdavMsg({ ok: false, text: '请先输入加密密码' }); return; }
+    if (!isTauriRuntime()) {
+      setWdavMsg({ ok: false, text: '仅桌面端可用' });
+      return;
+    }
+    if (wdavEncrypt && !wdavPassword.trim()) {
+      setWdavMsg({ ok: false, text: '请先输入加密密码' });
+      return;
+    }
     setWdavBacking(true);
     try {
       const result = await backupToWebdav(
@@ -195,7 +221,11 @@ export const SettingsPage = memo(function SettingsPage() {
   const handleWdavList = async () => {
     if (!isTauriRuntime()) return;
     try {
-      const list = await invoke<string[]>('webdav_list_backups', { url: wdavUrl, username: wdavUser, password: wdavPass });
+      const list = await invoke<string[]>('webdav_list_backups', {
+        url: wdavUrl,
+        username: wdavUser,
+        password: wdavPass,
+      });
       setWdavBackups(list);
       if (list.length === 0) setWdavMsg({ ok: true, text: '服务器上暂无备份' });
     } catch (e) {
@@ -218,8 +248,14 @@ export const SettingsPage = memo(function SettingsPage() {
   };
 
   const handleWdavBackupToFile = async () => {
-    if (!isTauriRuntime()) { setWdavMsg({ ok: false, text: '仅桌面端可用' }); return; }
-    if (wdavEncrypt && !wdavPassword.trim()) { setWdavMsg({ ok: false, text: '请先输入加密密码' }); return; }
+    if (!isTauriRuntime()) {
+      setWdavMsg({ ok: false, text: '仅桌面端可用' });
+      return;
+    }
+    if (wdavEncrypt && !wdavPassword.trim()) {
+      setWdavMsg({ ok: false, text: '请先输入加密密码' });
+      return;
+    }
     setWdavBacking(true);
     try {
       const path = await backupToFile(wdavEncrypt ? wdavPassword : undefined);
@@ -259,7 +295,9 @@ export const SettingsPage = memo(function SettingsPage() {
         <div className="mt-5 grid gap-3">
           <div className="ef-sub p-5">
             <div className="text-xs font-mono uppercase tracking-[0.18em] text-muted">资源同步</div>
-            <p className="mt-3 text-sm text-muted">启动时后台检查卡池数据。手动同步会全量检查卡池和图片，但只下载缺失或已变化的图片，不会阻塞使用。</p>
+            <p className="mt-3 text-sm text-muted">
+              启动时后台检查卡池数据。手动同步会全量检查卡池和图片，但只下载缺失或已变化的图片，不会阻塞使用。
+            </p>
             <div className="mt-4">
               <ActionBtn onClick={() => void handleSyncAssets()} disabled={syncingAssets}>
                 <RefreshCw className={syncingAssets ? 'animate-spin' : ''} />
@@ -271,9 +309,7 @@ export const SettingsPage = memo(function SettingsPage() {
 
           {/* JSON backup */}
           <div className="ef-sub p-5">
-            <div className="mb-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">
-              导入 / 导出
-            </div>
+            <div className="mb-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">导入 / 导出</div>
             <div className="flex flex-wrap gap-3">
               <ActionBtn onClick={() => void handleExportJson()}>导出 JSON</ActionBtn>
               <ActionBtn onClick={() => void handleImportJson()}>导入 JSON</ActionBtn>
@@ -282,30 +318,58 @@ export const SettingsPage = memo(function SettingsPage() {
             </div>
             {importMsg && <MsgBanner {...importMsg} onDismiss={() => setImportMsg(null)} />}
             {csvMsg && <MsgBanner {...csvMsg} onDismiss={() => setCsvMsg(null)} />}
-            <p className="mt-4 text-sm text-muted">文件对话框使用 Tauri 插件，导入时自动去重。CSV 可在 Excel 中查看编辑。</p>
+            <p className="mt-4 text-sm text-muted">
+              文件对话框使用 Tauri 插件，导入时自动去重。CSV 可在 Excel 中查看编辑。
+            </p>
           </div>
 
           {/* WebDAV backup */}
           <div className="ef-sub p-5">
             <div className="mb-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">
-              <span className="inline-flex items-center gap-1.5"><Cloud className="h-3.5 w-3.5" />WebDAV 备份</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Cloud className="h-3.5 w-3.5" />
+                WebDAV 备份
+              </span>
             </div>
 
             <div className="grid gap-2">
-              <input type="text" value={wdavUrl} onChange={(e) => setWdavUrl(e.target.value)}
+              <input
+                type="text"
+                value={wdavUrl}
+                onChange={(e) => setWdavUrl(e.target.value)}
                 placeholder="https://your-webdav-server.com/dav/"
-                className="ef-field" />
+                className="ef-field"
+              />
               <div className="grid grid-cols-2 gap-2">
-                <input type="text" value={wdavUser} onChange={(e) => setWdavUser(e.target.value)}
-                  placeholder="用户名" className="ef-field" />
-                <input type="password" value={wdavPass} onChange={(e) => setWdavPass(e.target.value)}
-                  placeholder="密码" className="ef-field" />
+                <input
+                  type="text"
+                  value={wdavUser}
+                  onChange={(e) => setWdavUser(e.target.value)}
+                  placeholder="用户名"
+                  className="ef-field"
+                />
+                <input
+                  type="password"
+                  value={wdavPass}
+                  onChange={(e) => setWdavPass(e.target.value)}
+                  placeholder="密码"
+                  className="ef-field"
+                />
               </div>
-              <input type="password" value={wdavPassword} onChange={(e) => setWdavPassword(e.target.value)}
-                placeholder="备份密码（加密备份 / 恢复加密备份时使用）" className="ef-field" />
+              <input
+                type="password"
+                value={wdavPassword}
+                onChange={(e) => setWdavPassword(e.target.value)}
+                placeholder="备份密码（加密备份 / 恢复加密备份时使用）"
+                className="ef-field"
+              />
               <label className="flex items-center gap-2 text-xs text-muted">
-                <input type="checkbox" checked={wdavEncrypt} onChange={(e) => setWdavEncrypt(e.target.checked)}
-                  className="h-3.5 w-3.5" />
+                <input
+                  type="checkbox"
+                  checked={wdavEncrypt}
+                  onChange={(e) => setWdavEncrypt(e.target.checked)}
+                  className="h-3.5 w-3.5"
+                />
                 使用密码加密本次备份（跨设备恢复时必须使用同一密码）
               </label>
             </div>
@@ -313,7 +377,9 @@ export const SettingsPage = memo(function SettingsPage() {
             <div className="mt-3 flex flex-wrap gap-2">
               <ActionBtn onClick={() => void saveWdavConfig()}>保存配置</ActionBtn>
               <ActionBtn onClick={() => void handleWdavTest()}>{wdavTesting ? '测试中…' : '测试连接'}</ActionBtn>
-              <ActionBtn onClick={() => void handleWdavBackup()} disabled={wdavBacking}>{wdavBacking ? '备份中…' : '备份到 WebDAV'}</ActionBtn>
+              <ActionBtn onClick={() => void handleWdavBackup()} disabled={wdavBacking}>
+                {wdavBacking ? '备份中…' : '备份到 WebDAV'}
+              </ActionBtn>
               <ActionBtn onClick={() => void handleWdavBackupToFile()} disabled={wdavBacking}>
                 <Upload className="inline h-3 w-3" /> 备份到文件
               </ActionBtn>
@@ -326,24 +392,32 @@ export const SettingsPage = memo(function SettingsPage() {
 
             <div className="mt-3 border-t border-[color:var(--rule)] pt-3">
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => void handleWdavList()}
-                  className="ef-btn ef-btn--sm">
+                <button type="button" onClick={() => void handleWdavList()} className="ef-btn ef-btn--sm">
                   刷新备份列表
                 </button>
-                <button type="button" onClick={() => void handleWdavRestoreFromFile()}
+                <button
+                  type="button"
+                  onClick={() => void handleWdavRestoreFromFile()}
                   disabled={wdavRestoring}
-                  className="ef-btn ef-btn--sm">
+                  className="ef-btn ef-btn--sm"
+                >
                   <Upload className="inline h-3 w-3" /> 从文件恢复
                 </button>
               </div>
               {wdavBackups.length > 0 && (
                 <div className="mt-2 max-h-32 overflow-auto border border-[color:var(--rule)] p-1">
                   {wdavBackups.map((name) => (
-                    <div key={name} className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs hover:bg-white/5">
+                    <div
+                      key={name}
+                      className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs hover:bg-white/5"
+                    >
                       <span className="text-muted truncate">{name}</span>
-                      <button type="button" onClick={() => void handleWdavRestore(name)}
+                      <button
+                        type="button"
+                        onClick={() => void handleWdavRestore(name)}
                         disabled={wdavRestoring}
-                        className="ef-btn ef-btn--sm shrink-0">
+                        className="ef-btn ef-btn--sm shrink-0"
+                      >
                         <Download className="inline h-3 w-3" /> 恢复
                       </button>
                     </div>
@@ -372,6 +446,10 @@ export const SettingsPage = memo(function SettingsPage() {
           <StatusCard label="存储初始化" value={storageState} />
           <StatusCard label="数据目录路径" value={pathsLabel} />
         </div>
+
+        <div className="mt-3">
+          <SyncHistoryPanel />
+        </div>
       </section>
     </div>
   );
@@ -379,10 +457,17 @@ export const SettingsPage = memo(function SettingsPage() {
 
 // ─── Internal components ──────────────────────────────────────────
 
-function ActionBtn({ children, onClick, disabled = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+function ActionBtn({
+  children,
+  onClick,
+  disabled = false,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled}
-      className="ef-btn">
+    <button type="button" onClick={onClick} disabled={disabled} className="ef-btn">
       {children}
     </button>
   );
@@ -399,14 +484,18 @@ function StatusCard({ label, value }: { label: string; value: string }) {
 
 function MsgBanner({ ok, text, onDismiss }: { ok: boolean; text: string; onDismiss: () => void }) {
   return (
-    <div className={[
-      'mt-4 border-l-[3px] px-4 py-3 text-sm',
-      ok
-        ? 'border-[color:var(--success)] bg-[color:var(--success)]/5 text-[color:var(--success)]'
-        : 'border-[color:var(--danger)] bg-[color:var(--danger)]/5 text-[color:var(--danger)]',
-    ].join(' ')}>
+    <div
+      className={[
+        'mt-4 border-l-[3px] px-4 py-3 text-sm',
+        ok
+          ? 'border-[color:var(--success)] bg-[color:var(--success)]/5 text-[color:var(--success)]'
+          : 'border-[color:var(--danger)] bg-[color:var(--danger)]/5 text-[color:var(--danger)]',
+      ].join(' ')}
+    >
       {text}
-      <button type="button" onClick={onDismiss} className="ml-3 text-xs opacity-60 hover:opacity-100">✕</button>
+      <button type="button" onClick={onDismiss} className="ml-3 text-xs opacity-60 hover:opacity-100">
+        ✕
+      </button>
     </div>
   );
 }

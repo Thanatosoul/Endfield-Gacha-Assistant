@@ -1,4 +1,4 @@
-import type { GachaCategory, GachaRarity } from '@/domain/types';
+import type { GachaCategory } from '@/domain/types';
 
 export interface OfficialApiOptions {
   lang?: string;
@@ -157,18 +157,4 @@ export interface FetchAllGachaOptions extends OfficialApiOptions {
 export interface AllOfficialGachaRecords {
   character: Record<string, OfficialCharacterRecord[]>;
   weapon: Record<WeaponPoolType, OfficialWeaponRecord[]>;
-}
-
-export interface OfficialRecordPayload {
-  seq_id: string;
-  ts: number;
-  item_id: string;
-  item_name: string;
-  rarity: GachaRarity;
-  is_new: boolean;
-  is_free: boolean;
-  pool_id: string;
-  pool_name: string;
-  pool_type: string;
-  weapon_type?: string | null;
 }

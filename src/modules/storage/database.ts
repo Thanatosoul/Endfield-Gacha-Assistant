@@ -4,6 +4,13 @@ import { STORAGE_SCHEMA } from '@/modules/storage/schema';
 
 let databasePromise: Promise<Database> | null = null;
 
+const BENIGN_MIGRATION_ERROR = /duplicate column name|already exists/i;
+
+function isBenignMigrationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return BENIGN_MIGRATION_ERROR.test(message);
+}
+
 async function openDatabase(): Promise<Database> {
   const paths = await resolveAppPaths();
   const database = await Database.load(paths.database_url);
@@ -14,8 +21,12 @@ async function openDatabase(): Promise<Database> {
   for (const statement of STORAGE_SCHEMA) {
     try {
       await database.execute(statement);
-    } catch {
-      // Ignore migration errors (e.g. column already exists)
+    } catch (error) {
+      // The schema is written to be idempotent, so re-running it on an existing
+      // database raises "duplicate column"/"already exists". Anything else is a
+      // real migration problem and must not be swallowed silently.
+      if (isBenignMigrationError(error)) continue;
+      console.error('[storage] schema statement failed:', (error as Error)?.message ?? error);
     }
   }
 

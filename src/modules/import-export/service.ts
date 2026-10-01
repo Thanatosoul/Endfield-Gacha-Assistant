@@ -6,7 +6,12 @@ import { adaptLegacySnapshot, isLegacySnapshot } from '@/modules/import-export/l
 import { isTauriRuntime } from '@/lib/runtime';
 import { listAccounts, listMetadata, listRecordsByAccount } from '@/modules/storage/queries';
 import { getDatabase } from '@/modules/storage/database';
-import { upsertGameAccount, upsertGachaRecords, saveMetadataSnapshot, saveSecurePreference } from '@/modules/storage/repositories';
+import {
+  upsertGameAccount,
+  upsertGachaRecords,
+  saveMetadataSnapshot,
+  saveSecurePreference,
+} from '@/modules/storage/repositories';
 import { dedupeRecords } from '@/modules/storage/normalize';
 import { assignFallbackPoolOrders, assignImportedPoolOrders } from '@/modules/storage/record-order';
 
@@ -15,10 +20,7 @@ function withBom(text: string): string {
 }
 
 export async function buildExportSnapshot(): Promise<ExportSnapshot> {
-  const [records, metadata] = await Promise.all([
-    listRecordsByAccount(),
-    listMetadata(),
-  ]);
+  const [records, metadata] = await Promise.all([listRecordsByAccount(), listMetadata()]);
   return {
     version: '0.1.0',
     exportedAt: Date.now(),
@@ -28,31 +30,36 @@ export async function buildExportSnapshot(): Promise<ExportSnapshot> {
 }
 
 export async function buildFullExportSnapshot(): Promise<ExportSnapshot> {
-  const [accounts, records, metadata] = await Promise.all([
-    listAccounts(),
-    listRecordsByAccount(),
-    listMetadata(),
-  ]);
+  const [accounts, records, metadata] = await Promise.all([listAccounts(), listRecordsByAccount(), listMetadata()]);
 
-  // Collect tokens
-  const tokens: TokenSnapshot = { appToken: null, sklandToken: null, checkInTokens: {} };
+  // Collect tokens, grouped per account (avoid duplicating the global Skland token).
+  const tokens: TokenSnapshot = { appToken: null, accounts: {} };
   try {
     const { getSecurePreference } = await import('@/modules/storage/repositories');
     tokens.appToken = await getSecurePreference('auth.appToken');
-    tokens.sklandToken = await getSecurePreference('skland.token');
+    const globalSkland = await getSecurePreference('skland.token');
 
     const hgUids = [...new Set(accounts.map((a) => a.hg_uid))];
-    await Promise.all(hgUids.map(async (hgUid) => {
-      const tokenKey = `checkin.token.${hgUid}`;
-      const t = await getSecurePreference(tokenKey);
-      if (t) tokens.checkInTokens[hgUid] = t;
-    }));
+    await Promise.all(
+      hgUids.map(async (hgUid) => {
+        const checkInToken = await getSecurePreference(`checkin.token.${hgUid}`);
+        const token = checkInToken || globalSkland;
+        if (token) {
+          tokens.accounts![hgUid] = { sklandToken: token, checkIn: Boolean(checkInToken) };
+        }
+      }),
+    );
+
+    // Keep the global token only when no account could carry it.
+    if (globalSkland && Object.keys(tokens.accounts!).length === 0) {
+      tokens.sklandToken = globalSkland;
+    }
   } catch {
     // tokens are best-effort
   }
 
   return {
-    version: '0.2.0',
+    version: '0.3.0',
     exportedAt: Date.now(),
     accounts,
     records,
@@ -164,13 +171,28 @@ export async function importSnapshotFromJsonFile(): Promise<{
       if (snapshot.tokens.appToken) {
         await saveSecurePreference('auth.appToken', snapshot.tokens.appToken, db);
       }
-      if (snapshot.tokens.sklandToken) {
-        await saveSecurePreference('skland.token', snapshot.tokens.sklandToken, db);
-      }
-      for (const [hgUid, t] of Object.entries(snapshot.tokens.checkInTokens ?? {})) {
-        if (t) {
-          await saveSecurePreference(`checkin.token.${hgUid}`, t, db);
+
+      let globalSkland: string | null = snapshot.tokens.sklandToken ?? null;
+
+      // New format: per-account tokens.
+      for (const [hgUid, entry] of Object.entries(snapshot.tokens.accounts ?? {})) {
+        const token = entry?.sklandToken;
+        if (!token) continue;
+        if (entry?.checkIn) {
+          await saveSecurePreference(`checkin.token.${hgUid}`, token, db);
         }
+        if (!globalSkland) globalSkland = token;
+      }
+
+      // Legacy format: split sklandToken + checkInTokens.
+      for (const [hgUid, token] of Object.entries(snapshot.tokens.checkInTokens ?? {})) {
+        if (!token) continue;
+        await saveSecurePreference(`checkin.token.${hgUid}`, token, db);
+        if (!globalSkland) globalSkland = token;
+      }
+
+      if (globalSkland) {
+        await saveSecurePreference('skland.token', globalSkland, db);
       }
     } catch {
       // tokens are best-effort

@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { isTauriRuntime } from '@/lib/runtime';
-import { BACKUP_PASSWORD_REQUIRED, deserializeBackup, inspectBackup, serializeBackup } from '@/modules/backup/crypto';
+import { BACKUP_PASSWORD_REQUIRED, deserializeBackup, serializeBackup } from '@/modules/backup/crypto';
 import { applyBackupPayload, buildBackupPayload } from '@/modules/backup/payload';
 import type { BackupRestoreResult } from '@/modules/backup/types';
 
@@ -36,11 +36,6 @@ async function encodeBackup(password?: string): Promise<string> {
 async function decodeAndApply(text: string, password?: string): Promise<BackupRestoreResult> {
   const payload = deserializeBackup(text, resolvePassword(password));
   return applyBackupPayload(payload);
-}
-
-/** Whether a backup file requires a password to decode. */
-export function isBackupEncrypted(text: string): boolean {
-  return inspectBackup(text).encrypted;
 }
 
 /** Upload a full portable backup to the configured WebDAV endpoint. */

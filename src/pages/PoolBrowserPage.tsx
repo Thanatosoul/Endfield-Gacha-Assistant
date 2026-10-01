@@ -4,7 +4,11 @@ import { getPoolImageCandidates, readPoolJsonMerged } from '@/modules/pool-manag
 import type { GachaCategory, GachaRecord } from '@/domain/types';
 import type { PoolSummary } from '@/modules/stats-engine/summary';
 import type { CharacterPoolKind } from '@/modules/pool-management/poolKind';
-import type { LimitedCharacterPity, RerunCharacterPity, RerunCharacterSeriesPity } from '@/modules/stats-engine/banner-rules';
+import type {
+  LimitedCharacterPity,
+  RerunCharacterPity,
+  RerunCharacterSeriesPity,
+} from '@/modules/stats-engine/banner-rules';
 import { RarityDonut } from '@/components/RarityDonut';
 import { PullTimeline } from '@/components/PullTimeline';
 import { LimitedPityPanel, RerunPityPanel } from '@/components/BannerPity';
@@ -14,6 +18,7 @@ import { useData } from '@/app/hooks/contexts';
 import { rarityTextClass } from '@/lib/rarity-utils';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
 import { AvatarImg } from '@/components/AvatarImg';
+import { useVirtualRows } from '@/components/useVirtualRows';
 
 interface PoolBrowserPageProps {
   category: GachaCategory;
@@ -23,7 +28,13 @@ interface PoolBrowserPageProps {
   rerunPitySeries: RerunCharacterSeriesPity[];
 }
 
-export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSummaries, records, limitedPity, rerunPitySeries }: PoolBrowserPageProps) {
+export const PoolBrowserPage = memo(function PoolBrowserPage({
+  category,
+  poolSummaries,
+  records,
+  limitedPity,
+  rerunPitySeries,
+}: PoolBrowserPageProps) {
   const { metadataIndex } = useData();
   const [tab, setTab] = useState<CharacterPoolKind | 'weapon-limited' | 'weapon-standard'>('special');
   const [selectedPool, setSelectedPool] = useState<PoolSummary | null>(null);
@@ -151,58 +162,65 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
       <section className="ef-sec p-5 sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="ef-kicker">
-              {category === 'character' ? '角色卡池' : '武器卡池'}
-            </p>
-            <h3 className="mt-2 ef-title text-xl">
-              {category === 'character' ? '卡池总览' : '武库总览'}
-            </h3>
+            <p className="ef-kicker">{category === 'character' ? '角色卡池' : '武器卡池'}</p>
+            <h3 className="mt-2 ef-title text-xl">{category === 'character' ? '卡池总览' : '武库总览'}</h3>
           </div>
           <div className="font-mono text-xs uppercase tracking-[0.14em] text-muted">{pools.length} 个卡池</div>
         </div>
 
         <div className="mt-4 flex gap-2 border-b border-[color:var(--panel-border)]">
-          {category === 'character' && (['special', 'joint', 'rerun', 'standard', 'beginner'] as const).map((kind) => (
+          {category === 'character' &&
+            (['special', 'joint', 'rerun', 'standard', 'beginner'] as const).map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                onClick={() => setTab(kind)}
+                className={[
+                  'px-3 py-2 text-sm font-medium transition-colors',
+                  tab === kind
+                    ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
+                    : 'text-muted hover:text-[color:var(--text-main)]',
+                ].join(' ')}
+              >
+                {
+                  {
+                    special: '限定寻访',
+                    joint: '联合寻访',
+                    rerun: '复刻寻访',
+                    standard: '常驻寻访',
+                    beginner: '新手寻访',
+                  }[kind]
+                }
+              </button>
+            ))}
+          {category === 'weapon' && (
             <button
-              key={kind}
               type="button"
-              onClick={() => setTab(kind)}
+              onClick={() => setTab('weapon-limited')}
               className={[
                 'px-3 py-2 text-sm font-medium transition-colors',
-                tab === kind
+                tab === 'weapon-limited'
                   ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
                   : 'text-muted hover:text-[color:var(--text-main)]',
               ].join(' ')}
             >
-              {{ special: '限定寻访', joint: '联合寻访', rerun: '复刻寻访', standard: '常驻寻访', beginner: '新手寻访' }[kind]}
+              限定寻访
             </button>
-          ))}
-          {category === 'weapon' && <button
-            type="button"
-            onClick={() => setTab('weapon-limited')}
-            className={[
-              'px-3 py-2 text-sm font-medium transition-colors',
-              tab === 'weapon-limited'
-                ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
-                : 'text-muted hover:text-[color:var(--text-main)]',
-            ].join(' ')}
-          >
-            限定寻访
-          </button>
-          }
-          {category === 'weapon' && <button
-            type="button"
-            onClick={() => setTab('weapon-standard')}
-            className={[
-              'px-3 py-2 text-sm font-medium transition-colors',
-              tab === 'weapon-standard'
-                ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
-                : 'text-muted hover:text-[color:var(--text-main)]',
-            ].join(' ')}
-          >
-            指定寻访
-          </button>
-          }
+          )}
+          {category === 'weapon' && (
+            <button
+              type="button"
+              onClick={() => setTab('weapon-standard')}
+              className={[
+                'px-3 py-2 text-sm font-medium transition-colors',
+                tab === 'weapon-standard'
+                  ? 'border-b-2 border-[color:var(--accent)] text-[color:var(--accent)]'
+                  : 'text-muted hover:text-[color:var(--text-main)]',
+              ].join(' ')}
+            >
+              指定寻访
+            </button>
+          )}
         </div>
       </section>
 
@@ -223,9 +241,7 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
             onOpenSettings={handleOpenSettings}
           />
         ))}
-        {pools.length === 0 && (
-          <div className="ef-empty">暂无卡池数据</div>
-        )}
+        {pools.length === 0 && <div className="ef-empty">暂无卡池数据</div>}
       </div>
 
       {selectedPool && (
@@ -293,6 +309,7 @@ const PoolBannerCard = memo(function PoolBannerCard({
   const { metadataIndex } = useData();
   const [bannerCandidates, setBannerCandidates] = useState<string[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [bannerLoaded, setBannerLoaded] = useState(false);
 
   const meta = metadataIndex.get(pool.poolId);
   const up6Name = meta?.up6_name?.trim() ?? '';
@@ -351,28 +368,40 @@ const PoolBannerCard = memo(function PoolBannerCard({
       if (!alive) return;
       setBannerCandidates(candidates.background);
       setBannerIndex(0);
+      setBannerLoaded(false);
     };
     void loadAssets();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [pool.poolId, pool.category, assetsVersion]);
 
   return (
     <div className="ef-sub group relative w-full overflow-hidden text-left">
       <button type="button" onClick={onOpenRecords} className="relative block w-full text-left">
-        <div className="relative h-[180px] w-full overflow-hidden">
+        <div className="relative h-[180px] w-full overflow-hidden" style={{ background: 'var(--rule-soft)' }}>
           {bannerIndex < bannerCandidates.length && (
             <img
               src={bannerCandidates[bannerIndex]}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover object-center opacity-65 transition group-hover:opacity-80"
-              onError={() => setBannerIndex((prev) => prev + 1)}
+              loading="lazy"
+              decoding="async"
+              className={`absolute inset-0 h-full w-full object-cover object-center transition group-hover:opacity-80 ${
+                bannerLoaded ? 'opacity-65' : 'opacity-0'
+              }`}
+              onLoad={() => setBannerLoaded(true)}
+              onError={() => {
+                setBannerLoaded(false);
+                setBannerIndex((prev) => prev + 1);
+              }}
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/20" />
           <div className="absolute top-0 left-0 px-5 py-3 pr-12">
             <div className="text-2xl font-bold text-white drop-shadow leading-tight">{pool.poolName}</div>
             <div className="text-sm text-white/65 mt-1">
-              抽取时间 {cardStats.startTs ? formatDate(cardStats.startTs) : '—'} 至 {cardStats.endTs ? formatDate(cardStats.endTs) : '—'}
+              抽取时间 {cardStats.startTs ? formatDate(cardStats.startTs) : '—'} 至{' '}
+              {cardStats.endTs ? formatDate(cardStats.endTs) : '—'}
             </div>
           </div>
           <div className="absolute bottom-0 left-0 flex items-center gap-3 px-5 py-2.5">
@@ -389,7 +418,14 @@ const PoolBannerCard = memo(function PoolBannerCard({
               {cardStats.uniqueUp6Records.length > 0 ? (
                 <div className="flex items-center gap-1 flex-wrap">
                   {cardStats.uniqueUp6Records.map((r) => (
-                    <AvatarImg key={r.record_uid} category={pool.category} itemId={r.item_id} size={36} ringClass="border-2 border-red-500" title={r.item_name} />
+                    <AvatarImg
+                      key={r.record_uid}
+                      category={pool.category}
+                      itemId={r.item_id}
+                      size={36}
+                      ringClass="border-2 border-red-500"
+                      title={r.item_name}
+                    />
                   ))}
                 </div>
               ) : (
@@ -402,7 +438,14 @@ const PoolBannerCard = memo(function PoolBannerCard({
               {cardStats.nonUp6Count > 0 ? (
                 <div className="flex items-center gap-1 flex-wrap">
                   {cardStats.uniqueNonUp6Records.map((r) => (
-                    <AvatarImg key={r.record_uid} category={pool.category} itemId={r.item_id} size={36} ringClass="border-2 border-red-300" title={r.item_name} />
+                    <AvatarImg
+                      key={r.record_uid}
+                      category={pool.category}
+                      itemId={r.item_id}
+                      size={36}
+                      ringClass="border-2 border-red-300"
+                      title={r.item_name}
+                    />
                   ))}
                 </div>
               ) : (
@@ -416,7 +459,14 @@ const PoolBannerCard = memo(function PoolBannerCard({
             {cardStats.uniqueFive5Records.length > 0 ? (
               <div className="flex items-center gap-1 flex-wrap">
                 {cardStats.uniqueFive5Records.map((r) => (
-                    <AvatarImg key={r.record_uid} category={pool.category} itemId={r.item_id} size={32} ringClass="border-2 border-amber-400" title={r.item_name} />
+                  <AvatarImg
+                    key={r.record_uid}
+                    category={pool.category}
+                    itemId={r.item_id}
+                    size={32}
+                    ringClass="border-2 border-amber-400"
+                    title={r.item_name}
+                  />
                 ))}
               </div>
             ) : (
@@ -438,10 +488,6 @@ const PoolBannerCard = memo(function PoolBannerCard({
   );
 });
 
-
-
-
-
 const PoolRecordsModal = memo(function PoolRecordsModal({
   pool,
   records,
@@ -454,6 +500,8 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
   const { metadataIndex } = useData();
   const sorted = useMemo(() => [...records].sort(compareRecordsNewestFirst), [records]);
   const poolMeta = metadataIndex.get(pool.poolId);
+  const { scrollRef, window: virtualWindow } = useVirtualRows(sorted.length, 56);
+  const visible = sorted.slice(virtualWindow.start, virtualWindow.end);
 
   return (
     <div className="ef-overlay">
@@ -477,7 +525,7 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
           <table className="ef-table">
             <thead>
               <tr>
@@ -488,7 +536,12 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
               </tr>
             </thead>
             <tbody>
-              {sorted.map((r) => (
+              {virtualWindow.paddingTop > 0 && (
+                <tr aria-hidden="true" style={{ height: virtualWindow.paddingTop }}>
+                  <td colSpan={4} style={{ padding: 0, border: 0 }} />
+                </tr>
+              )}
+              {visible.map((r) => (
                 <tr key={r.record_uid}>
                   <td>{formatDateTime(r.gacha_ts)}</td>
                   <td>
@@ -500,7 +553,9 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
                       </div>
                     </div>
                   </td>
-                  <td><span className={rarityTextClass(r.rarity)}>{r.rarity}★</span></td>
+                  <td>
+                    <span className={rarityTextClass(r.rarity)}>{r.rarity}★</span>
+                  </td>
                   <td>
                     <div className="flex gap-2 text-xs">
                       {r.is_new ? <span className="ef-chip ef-chip--sig">NEW</span> : null}
@@ -516,6 +571,11 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
                   </td>
                 </tr>
               )}
+              {virtualWindow.paddingBottom > 0 && (
+                <tr aria-hidden="true" style={{ height: virtualWindow.paddingBottom }}>
+                  <td colSpan={4} style={{ padding: 0, border: 0 }} />
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -523,5 +583,3 @@ const PoolRecordsModal = memo(function PoolRecordsModal({
     </div>
   );
 });
-
-

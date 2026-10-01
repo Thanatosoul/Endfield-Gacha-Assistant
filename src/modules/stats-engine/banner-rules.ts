@@ -11,6 +11,10 @@ export const RERUN_CHAR_TOKEN_INTERVAL = 240;
 export const RERUN_WEAPON_SIX_STAR_CLAIMS = 4;
 export const RERUN_WEAPON_UP_CLAIMS = 8;
 
+/** Read-only cumulative reward thresholds (counted in paid pulls, excluding free ten-pulls). */
+export const LIMITED_REWARD_MILESTONES = [30, 60] as const;
+export const RERUN_CHARACTER_REWARD_MILESTONES = [30, 60, 90] as const;
+
 export interface LimitedCharacterPity {
   poolId: string | null;
   sixStarPity: number;
@@ -80,9 +84,7 @@ export function computeLimitedCharacterPity(
   records: GachaRecord[],
   metadata: Map<string, PoolMetadata>,
 ): LimitedCharacterPity {
-  const list = records
-    .filter((record) => isLimitedCharacterPool(record, metadata))
-    .sort(compareRecordsChronologically);
+  const list = records.filter((record) => isLimitedCharacterPool(record, metadata)).sort(compareRecordsChronologically);
 
   if (list.length === 0) {
     return {
@@ -144,10 +146,7 @@ const EMPTY_RERUN_CHARACTER_PITY: RerunCharacterPity = {
   tokensEarned: 0,
 };
 
-function summarizeRerunSeries(
-  series: GachaRecord[],
-  metadata: Map<string, PoolMetadata>,
-): RerunCharacterPity {
+function summarizeRerunSeries(series: GachaRecord[], metadata: Map<string, PoolMetadata>): RerunCharacterPity {
   const latest = series[series.length - 1];
   const poolId = latest.pool_id;
   const upName = metadata.get(poolId)?.up6_name?.trim() || null;
@@ -194,9 +193,7 @@ export function computeRerunCharacterPitySeries(
   records: GachaRecord[],
   metadata: Map<string, PoolMetadata>,
 ): RerunCharacterSeriesPity[] {
-  const list = records
-    .filter((record) => isRerunCharacterPool(record, metadata))
-    .sort(compareRecordsChronologically);
+  const list = records.filter((record) => isRerunCharacterPool(record, metadata)).sort(compareRecordsChronologically);
 
   const groups = new Map<string, GachaRecord[]>();
   for (const record of list) {
@@ -256,10 +253,7 @@ export function groupWeaponClaims(records: GachaRecord[]): GachaRecord[][] {
   return claims;
 }
 
-export function computeRerunWeaponPity(
-  records: GachaRecord[],
-  metadata: Map<string, PoolMetadata>,
-): RerunWeaponPity {
+export function computeRerunWeaponPity(records: GachaRecord[], metadata: Map<string, PoolMetadata>): RerunWeaponPity {
   const list = records.filter((record) => isRerunWeaponPool(record, metadata));
   const claims = groupWeaponClaims(list);
 
