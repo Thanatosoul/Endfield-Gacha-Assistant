@@ -102,28 +102,6 @@ scripts/
   compress-upx.ps1        — UPX 压缩脚本（Windows）
 ```
 
-## 构建发布
-
-推送 tag 触发 CI（需自行配置 GitHub Actions）:
-
-```bash
-git tag v1.1.0
-git push origin v1.1.0
-```
-
-首次发布前，在 GitHub Secrets 中配置：
-- `TAURI_PRIVATE_KEY` — `tauri signer generate` 生成的私钥
-- `TAURI_KEY_PASSWORD` — 私钥密码（可选）
-
-生成密钥对：
-
-```bash
-cargo install tauri-cli
-tauri signer generate -w ~/.tauri/myapp.key
-```
-
-将公钥填入 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`，将 `endpoints` 中的仓库地址改为实际仓库名。
-
 ## License
 
 MIT
