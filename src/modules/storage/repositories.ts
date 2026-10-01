@@ -235,6 +235,7 @@ export async function saveMetadataSnapshot(metadata: PoolMetadata[], database?: 
       json_extract(value, '$.valid_to'),
       json_extract(value, '$.version')
     FROM json_each(?)
+    WHERE true
     ON CONFLICT(pool_id) DO UPDATE SET
       category = excluded.category,
       pool_type = excluded.pool_type,
