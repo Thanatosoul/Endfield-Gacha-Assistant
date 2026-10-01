@@ -2,8 +2,10 @@ import { memo } from 'react';
 import {
   LIMITED_REWARD_MILESTONES,
   RERUN_CHARACTER_REWARD_MILESTONES,
+  JOINT_REWARD_MILESTONES,
   type LimitedCharacterPity,
   type RerunCharacterPity,
+  type JointCharacterPity,
 } from '@/modules/stats-engine/banner-rules';
 
 const LIMITED_MILESTONE_LABELS: Record<number, string> = {
@@ -15,6 +17,13 @@ const RERUN_MILESTONE_LABELS: Record<number, string> = {
   30: '加急招募 ×10',
   60: '加急招募 ×10',
   90: '加急招募 ×10',
+};
+
+const JOINT_MILESTONE_LABELS: Record<number, string> = {
+  30: '加急招募 ×10',
+  60: '基础寻访凭证 ×10',
+  120: '流光庆时调用凭证 ×1',
+  240: '流光庆时信物补给 ×1',
 };
 
 function RewardMilestones({
@@ -152,6 +161,36 @@ export const RerunPityPanel = memo(function RerunPityPanel({ pity }: { pity: Rer
         milestones={RERUN_CHARACTER_REWARD_MILESTONES}
         labels={RERUN_MILESTONE_LABELS}
       />
+    </section>
+  );
+});
+
+export const JointPityPanel = memo(function JointPityPanel({ pity }: { pity: JointCharacterPity }) {
+  return (
+    <section className="ef-sub p-5">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="ef-code">联合寻访 · 独立保底</span>
+        <span className="text-xs text-muted">本池独立计数 · 免费十连不计入</span>
+      </div>
+      <PityBar
+        label="六星保底（本池）"
+        value={pity.sixStarPity}
+        cap={80}
+        note={pity.sixStarRemaining === 0 ? '已达保底' : `还差 ${pity.sixStarRemaining}`}
+      />
+      <PityBar
+        label="五星保底（本池，10 抽内必出 5 星及以上）"
+        value={pity.fiveStarPity}
+        cap={10}
+        note={pity.fiveStarRemaining === 0 ? '已达保底' : `还差 ${pity.fiveStarRemaining}`}
+      />
+      <PityBar
+        label="信物补给（本池 240 抽）"
+        value={pity.tokenProgress}
+        cap={240}
+        note={`已获 ${pity.tokensEarned}`}
+      />
+      <RewardMilestones pulls={pity.tokenPulls} milestones={JOINT_REWARD_MILESTONES} labels={JOINT_MILESTONE_LABELS} />
     </section>
   );
 });

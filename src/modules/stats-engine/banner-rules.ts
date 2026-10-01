@@ -15,6 +15,12 @@ export const RERUN_WEAPON_UP_CLAIMS = 8;
 export const LIMITED_REWARD_MILESTONES = [30, 60] as const;
 export const RERUN_CHARACTER_REWARD_MILESTONES = [30, 60, 90] as const;
 
+export const JOINT_SIX_STAR_PITY = 80;
+export const JOINT_FIVE_STAR_PITY = 10;
+export const JOINT_TOKEN_INTERVAL = 240;
+/** Joint (联合) banner cumulative reward thresholds (paid pulls only). */
+export const JOINT_REWARD_MILESTONES = [30, 60, 120, 240] as const;
+
 export interface LimitedCharacterPity {
   poolId: string | null;
   sixStarPity: number;
@@ -45,6 +51,17 @@ export interface RerunWeaponPity {
   upClaimPity: number;
   upClaimRemaining: number;
   upGuaranteeConsumed: boolean;
+}
+
+export interface JointCharacterPity {
+  poolId: string | null;
+  sixStarPity: number;
+  sixStarRemaining: number;
+  fiveStarPity: number;
+  fiveStarRemaining: number;
+  tokenPulls: number;
+  tokenProgress: number;
+  tokensEarned: number;
 }
 
 function poolKindOf(record: GachaRecord, metadata: Map<string, PoolMetadata>) {
@@ -298,5 +315,64 @@ export function computeRerunWeaponPity(records: GachaRecord[], metadata: Map<str
     upClaimPity,
     upClaimRemaining: upGuaranteeConsumed ? 0 : Math.max(0, RERUN_WEAPON_UP_CLAIMS - upClaimPity),
     upGuaranteeConsumed,
+  };
+}
+
+export function isJointCharacterPool(record: GachaRecord, metadata: Map<string, PoolMetadata>): boolean {
+  if (record.category !== 'character') return false;
+  return poolKindOf(record, metadata) === 'joint';
+}
+
+/**
+ * Joint (联合) banners such as "辉光庆典" run an independent pity: at most 80 pulls for a
+ * six-star and at most 10 pulls for a five-star or above, plus cumulative rewards at
+ * 30 / 60 / 120 / 240 pulls. Counts are per banner; a six-star resets both pity tracks.
+ */
+export function computeJointCharacterPity(
+  records: GachaRecord[],
+  metadata: Map<string, PoolMetadata>,
+): JointCharacterPity {
+  const list = records.filter((record) => isJointCharacterPool(record, metadata)).sort(compareRecordsChronologically);
+
+  if (list.length === 0) {
+    return {
+      poolId: null,
+      sixStarPity: 0,
+      sixStarRemaining: JOINT_SIX_STAR_PITY,
+      fiveStarPity: 0,
+      fiveStarRemaining: JOINT_FIVE_STAR_PITY,
+      tokenPulls: 0,
+      tokenProgress: 0,
+      tokensEarned: 0,
+    };
+  }
+
+  const poolId = list[list.length - 1].pool_id;
+
+  let sixStarPity = 0;
+  let fiveStarPity = 0;
+  let tokenPulls = 0;
+  for (const record of list) {
+    if (record.pool_id !== poolId || record.is_free) continue;
+    tokenPulls += 1;
+    if (record.rarity === 6) {
+      sixStarPity = 0;
+      fiveStarPity = 0;
+    } else {
+      sixStarPity += 1;
+      if (record.rarity >= 5) fiveStarPity = 0;
+      else fiveStarPity += 1;
+    }
+  }
+
+  return {
+    poolId,
+    sixStarPity,
+    sixStarRemaining: Math.max(0, JOINT_SIX_STAR_PITY - sixStarPity),
+    fiveStarPity,
+    fiveStarRemaining: Math.max(0, JOINT_FIVE_STAR_PITY - fiveStarPity),
+    tokenPulls,
+    tokenProgress: tokenPulls % JOINT_TOKEN_INTERVAL,
+    tokensEarned: Math.floor(tokenPulls / JOINT_TOKEN_INTERVAL),
   };
 }

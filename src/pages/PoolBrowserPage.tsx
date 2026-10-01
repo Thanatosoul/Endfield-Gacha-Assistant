@@ -4,14 +4,15 @@ import { getPoolImageCandidates, readPoolJsonMerged } from '@/modules/pool-manag
 import type { GachaCategory, GachaRecord, PoolMetadata } from '@/domain/types';
 import { comparePoolIds, type PoolSummary } from '@/modules/stats-engine/summary';
 import { classifyPoolKind, type CharacterPoolKind, type PoolKind } from '@/modules/pool-management/poolKind';
-import type {
-  LimitedCharacterPity,
-  RerunCharacterPity,
-  RerunCharacterSeriesPity,
+import {
+  computeJointCharacterPity,
+  type LimitedCharacterPity,
+  type RerunCharacterPity,
+  type RerunCharacterSeriesPity,
 } from '@/modules/stats-engine/banner-rules';
 import { RarityDonut } from '@/components/RarityDonut';
 import { PullTimeline } from '@/components/PullTimeline';
-import { LimitedPityPanel, RerunPityPanel } from '@/components/BannerPity';
+import { JointPityPanel, LimitedPityPanel, RerunPityPanel } from '@/components/BannerPity';
 import { ToggleSwitch } from '@/components/ToggleSwitch';
 import { compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
 import { PoolEditModal } from '@/pages/PoolEditModal';
@@ -163,6 +164,8 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({
     return panels;
   }, [category, tab, pools, rerunPitySeries, metadataIndex]);
 
+  const jointPity = useMemo(() => computeJointCharacterPity(records, metadataIndex), [records, metadataIndex]);
+
   useEffect(() => {
     let alive = true;
     const preload = async () => {
@@ -265,6 +268,7 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({
       </section>
 
       {category === 'character' && tab === 'special' && <LimitedPityPanel pity={limitedPity} />}
+      {category === 'character' && tab === 'joint' && <JointPityPanel pity={jointPity} />}
 
       {rerunPanels.map((panel) => (
         <RerunPityPanel key={panel.poolId ?? panel.upName ?? 'rerun'} pity={panel} />

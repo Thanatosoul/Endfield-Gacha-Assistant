@@ -1,21 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { GachaCategory, GachaRecord, PoolKind, PoolMetadata } from '@/domain/types';
 import {
+  computeJointCharacterPity,
   computeLimitedCharacterPity,
   computeRerunCharacterPity,
   computeRerunWeaponPity,
   groupWeaponClaims,
+  isJointCharacterPool,
   isLimitedCharacterPool,
   isRerunCharacterPool,
   isRerunWeaponPool,
 } from './banner-rules';
 
-function meta(
-  poolId: string,
-  kind: PoolKind,
-  category: GachaCategory,
-  up6Name = 'UP6',
-): PoolMetadata {
+function meta(poolId: string, kind: PoolKind, category: GachaCategory, up6Name = 'UP6'): PoolMetadata {
   return {
     pool_id: poolId,
     category,
@@ -268,5 +265,65 @@ describe('rerun weapon pity', () => {
     ]);
     expect(claims).toHaveLength(3);
     expect(claims[0]).toHaveLength(10);
+  });
+});
+
+describe('joint character pity', () => {
+  it('classifies joint character pools independently', () => {
+    const metadata = index(meta('joint_1', 'joint', 'character'), limited('special_1'));
+    expect(isJointCharacterPool(record({ pool_id: 'joint_1' }), metadata)).toBe(true);
+    expect(isJointCharacterPool(record({ pool_id: 'special_1' }), metadata)).toBe(false);
+    expect(isJointCharacterPool(record({ pool_id: 'joint_1', category: 'weapon' }), metadata)).toBe(false);
+  });
+
+  it('tracks an independent 80-pull six-star pity in the current pool', () => {
+    const metadata = index(meta('joint_1', 'joint', 'character'));
+    const records = Array.from({ length: 79 }, (_, i) => record({ pool_id: 'joint_1', gacha_ts: i }));
+    const before = computeJointCharacterPity(records, metadata);
+    expect(before.sixStarPity).toBe(79);
+    expect(before.sixStarRemaining).toBe(1);
+
+    const after = computeJointCharacterPity(
+      [...records, record({ pool_id: 'joint_1', gacha_ts: 100, rarity: 6 })],
+      metadata,
+    );
+    expect(after.sixStarPity).toBe(0);
+    expect(after.sixStarRemaining).toBe(80);
+  });
+
+  it('resets the 10-pull five-star pity on any 5-star or above', () => {
+    const metadata = index(meta('joint_1', 'joint', 'character'));
+    const fourStar = Array.from({ length: 9 }, (_, i) => record({ pool_id: 'joint_1', gacha_ts: i, rarity: 4 }));
+    const before = computeJointCharacterPity(fourStar, metadata);
+    expect(before.fiveStarPity).toBe(9);
+    expect(before.fiveStarRemaining).toBe(1);
+
+    const withFive = computeJointCharacterPity(
+      [...fourStar, record({ pool_id: 'joint_1', gacha_ts: 50, rarity: 5 })],
+      metadata,
+    );
+    expect(withFive.fiveStarPity).toBe(0);
+
+    const withSix = computeJointCharacterPity(
+      [...fourStar, record({ pool_id: 'joint_1', gacha_ts: 50, rarity: 6 })],
+      metadata,
+    );
+    expect(withSix.fiveStarPity).toBe(0);
+    expect(withSix.sixStarPity).toBe(0);
+  });
+
+  it('ignores free pulls and counts a token reward every 240 pulls within the pool', () => {
+    const metadata = index(meta('joint_1', 'joint', 'character'));
+    const records = [
+      ...Array.from({ length: 240 }, (_, i) =>
+        record({ pool_id: 'joint_1', gacha_ts: i, rarity: i % 80 === 0 ? 6 : 3 }),
+      ),
+      record({ pool_id: 'joint_1', gacha_ts: 500, is_free: true }),
+      record({ pool_id: 'joint_1', gacha_ts: 501 }),
+    ];
+    const result = computeJointCharacterPity(records, metadata);
+    expect(result.tokenPulls).toBe(241);
+    expect(result.tokensEarned).toBe(1);
+    expect(result.tokenProgress).toBe(1);
   });
 });

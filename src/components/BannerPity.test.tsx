@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { LimitedPityPanel, PityBar, RerunPityPanel } from '@/components/BannerPity';
-import type { LimitedCharacterPity, RerunCharacterPity } from '@/modules/stats-engine/banner-rules';
+import { JointPityPanel, LimitedPityPanel, PityBar, RerunPityPanel } from '@/components/BannerPity';
+import type { JointCharacterPity, LimitedCharacterPity, RerunCharacterPity } from '@/modules/stats-engine/banner-rules';
 
 afterEach(cleanup);
 
@@ -25,6 +25,17 @@ const rerunPity: RerunCharacterPity = {
   upGuaranteeConsumed: false,
   tokenPulls: 80,
   tokenProgress: 80,
+  tokensEarned: 0,
+};
+
+const jointPity: JointCharacterPity = {
+  poolId: 'joint_1_2_2',
+  sixStarPity: 42,
+  sixStarRemaining: 38,
+  fiveStarPity: 9,
+  fiveStarRemaining: 1,
+  tokenPulls: 120,
+  tokenProgress: 120,
   tokensEarned: 0,
 };
 
@@ -91,5 +102,23 @@ describe('RerunPityPanel', () => {
     expect(screen.getByText('累计 30 · 加急招募 ×10 ✓')).toBeInTheDocument();
     expect(screen.getByText('累计 60 · 加急招募 ×10 ✓')).toBeInTheDocument();
     expect(screen.getByText('累计 90 · 加急招募 ×10')).toBeInTheDocument();
+  });
+});
+
+describe('JointPityPanel', () => {
+  it('shows the independent six-star and five-star tracks', () => {
+    render(<JointPityPanel pity={jointPity} />);
+    expect(screen.getByText('联合寻访 · 独立保底')).toBeInTheDocument();
+    expect(screen.getByText('六星保底（本池）')).toBeInTheDocument();
+    expect(screen.getByText('五星保底（本池，10 抽内必出 5 星及以上）')).toBeInTheDocument();
+    expect(screen.getByText('信物补给（本池 240 抽）')).toBeInTheDocument();
+  });
+
+  it('lists the joint cumulative reward milestones read-only', () => {
+    render(<JointPityPanel pity={jointPity} />);
+    expect(screen.getByText('累计 30 · 加急招募 ×10 ✓')).toBeInTheDocument();
+    expect(screen.getByText('累计 60 · 基础寻访凭证 ×10 ✓')).toBeInTheDocument();
+    expect(screen.getByText('累计 120 · 流光庆时调用凭证 ×1 ✓')).toBeInTheDocument();
+    expect(screen.getByText('累计 240 · 流光庆时信物补给 ×1')).toBeInTheDocument();
   });
 });
