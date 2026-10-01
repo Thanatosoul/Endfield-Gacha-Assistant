@@ -2,7 +2,6 @@ import { invoke } from '@tauri-apps/api/core';
 import type { GachaCategory, PoolMetadata } from '@/domain/types';
 import { getAssetUrl, isTauriRuntime } from '@/lib/runtime';
 import { parsePoolJson, type ParsedPoolJson } from '@/modules/metadata/poolJson';
-import { getBannerFallbackUrls, getPortraitFallbackUrls } from '@/modules/pool-management/imageSources';
 
 interface PoolJsonFile {
   pool_ID: string;
@@ -75,7 +74,6 @@ export async function getPoolImageCandidates(
   const background: string[] = [
     withVersion(getAssetUrl(`images/banner/${folder}/${poolId}.png`), version),
     withVersion(getAssetUrl(`images/banner/${folder}/${poolId}.webp`), version),
-    ...getBannerFallbackUrls(poolId).map((url) => withVersion(url, version)),
   ];
   const avatar: string[] = [];
 
@@ -83,7 +81,7 @@ export async function getPoolImageCandidates(
     const folder = _category === 'weapon' ? 'weapon' : 'character';
     avatar.push(withVersion(getAssetUrl(`/source/${folder}/${_up6ItemId}.png`), version));
     avatar.push(withVersion(getAssetUrl(`/source/${folder}/${_up6ItemId}.webp`), version));
-    avatar.push(...getPortraitFallbackUrls(_up6ItemId, _category).map((url) => withVersion(url, version)));
+    avatar.push(withVersion(getAssetUrl(`/source/${folder}/${_up6ItemId}.avif`), version));
   }
 
   return { background, avatar };

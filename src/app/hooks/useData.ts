@@ -8,7 +8,6 @@ import { deleteAccountCascade, savePreference, saveMetadataSnapshot } from '@/mo
 import { summarizePools, summarizeRecords, selectFeaturedPools, computePityGaps } from '@/modules/stats-engine/summary';
 import { computeLimitedCharacterPity, computeRerunCharacterPitySeries } from '@/modules/stats-engine/banner-rules';
 import { ensurePoolScaffold } from '@/modules/pool-management/files';
-import { loadCachedOfficialBanners, probeOfficialBanners } from '@/modules/pool-management/officialAssets';
 import { fetchRemoteAssets } from '@/modules/metadata/remoteAssets';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauriRuntime } from '@/lib/runtime';
@@ -107,7 +106,6 @@ export function useDataState(input: DataBootInput): DataContextValue {
       setMetadata(result.metadata);
       setResourceVersion(result.version);
       await Promise.allSettled(result.metadata.map((pool) => ensurePoolScaffold(pool)));
-      void probeOfficialBanners(result.metadata);
       return { pools: result.metadata.length, version: result.version, updatedAt: result.updatedAt, cacheStarted };
     },
     [resourceVersion],
@@ -118,7 +116,6 @@ export function useDataState(input: DataBootInput): DataContextValue {
   useEffect(() => {
     if (autoSyncStarted.current) return;
     autoSyncStarted.current = true;
-    void loadCachedOfficialBanners();
     void syncRemoteAssets(false).catch(() => {
       // Startup synchronization is intentionally non-blocking; the local snapshot remains active.
     });
