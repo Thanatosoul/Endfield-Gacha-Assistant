@@ -4,6 +4,7 @@ import { OfficialApiClient } from '@/modules/official-api/client';
 import { appendSyncLog, upsertGachaRecords } from '@/modules/storage/repositories';
 import { getExistingCharacterSeqIdsByPool, getExistingSeqIds } from '@/modules/storage/queries';
 import { mapOfficialCharacterRecord, mapOfficialWeaponRecord } from '@/modules/storage/mappers';
+import { probeOfficialBannersByPoolIds } from '@/modules/pool-management/officialAssets';
 
 export type SyncStatus =
   'idle' | 'authenticating' | 'fetching_bindings' | 'fetching_records' | 'done' | 'cancelled' | 'error';
@@ -110,6 +111,11 @@ export class SyncEngine {
         upsertGachaRecords(weaponRecords),
       ]);
       const inserted = charInserted + weaponInserted;
+
+      void probeOfficialBannersByPoolIds([
+        ...characterRecords.map((record) => record.pool_id),
+        ...weaponRecords.map((record) => record.pool_id),
+      ]);
 
       await appendSyncLog({
         id: logId,

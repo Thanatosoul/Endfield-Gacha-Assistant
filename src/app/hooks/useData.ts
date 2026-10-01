@@ -6,11 +6,9 @@ import { saveCheckInToken } from '@/modules/skland-checkin/config';
 import { listAccounts, listMetadata, listRecordsByAccount } from '@/modules/storage/queries';
 import { deleteAccountCascade, savePreference, saveMetadataSnapshot } from '@/modules/storage/repositories';
 import { summarizePools, summarizeRecords, selectFeaturedPools, computePityGaps } from '@/modules/stats-engine/summary';
-import {
-  computeLimitedCharacterPity,
-  computeRerunCharacterPitySeries,
-} from '@/modules/stats-engine/banner-rules';
+import { computeLimitedCharacterPity, computeRerunCharacterPitySeries } from '@/modules/stats-engine/banner-rules';
 import { ensurePoolScaffold } from '@/modules/pool-management/files';
+import { loadCachedOfficialBanners, probeOfficialBanners } from '@/modules/pool-management/officialAssets';
 import { fetchRemoteAssets } from '@/modules/metadata/remoteAssets';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauriRuntime } from '@/lib/runtime';
@@ -55,79 +53,95 @@ export function useDataState(input: DataBootInput): DataContextValue {
   const pityGaps = useMemo(() => computePityGaps(records, 'character'), [records]);
   const pityGapsWpn = useMemo(() => computePityGaps(records, 'weapon'), [records]);
   const limitedPity = useMemo(() => computeLimitedCharacterPity(records, metadataIndex), [metadataIndex, records]);
-  const rerunPitySeries = useMemo(() => computeRerunCharacterPitySeries(records, metadataIndex), [metadataIndex, records]);
+  const rerunPitySeries = useMemo(
+    () => computeRerunCharacterPitySeries(records, metadataIndex),
+    [metadataIndex, records],
+  );
 
-  const refresh = useCallback(async (preferredAccountId?: string | null) => {
-    const accountsData = await listAccounts();
-    const metadataData = await listMetadata();
-    const preferred = preferredAccountId ?? activeAccountId ?? null;
-    const hasPreferred = preferred ? accountsData.some((e) => e.id === preferred) : false;
-    const accountId = hasPreferred ? preferred : (accountsData[0]?.id ?? null);
-    const recordsData = await listRecordsByAccount(accountId ?? undefined);
+  const refresh = useCallback(
+    async (preferredAccountId?: string | null) => {
+      const accountsData = await listAccounts();
+      const metadataData = await listMetadata();
+      const preferred = preferredAccountId ?? activeAccountId ?? null;
+      const hasPreferred = preferred ? accountsData.some((e) => e.id === preferred) : false;
+      const accountId = hasPreferred ? preferred : (accountsData[0]?.id ?? null);
+      const recordsData = await listRecordsByAccount(accountId ?? undefined);
 
-    setAccounts(accountsData);
-    setActiveAccountIdState(accountId);
-    setRecords(recordsData);
+      setAccounts(accountsData);
+      setActiveAccountIdState(accountId);
+      setRecords(recordsData);
 
-    if (metadataData.length > 0) {
-      setMetadata(metadataData);
-    } else {
-      await saveMetadataSnapshot(seedMetadata);
-    }
+      if (metadataData.length > 0) {
+        setMetadata(metadataData);
+      } else {
+        await saveMetadataSnapshot(seedMetadata);
+      }
 
-    const pools = metadataData.length > 0 ? metadataData : seedMetadata;
-    await Promise.allSettled(pools.map((p) => ensurePoolScaffold(p)));
-  }, [activeAccountId]);
+      const pools = metadataData.length > 0 ? metadataData : seedMetadata;
+      await Promise.allSettled(pools.map((p) => ensurePoolScaffold(p)));
+    },
+    [activeAccountId],
+  );
 
-  const setActiveAccountId = useCallback(async (accountId: string | null) => {
-    setActiveAccountIdState(accountId);
-    await savePreference(ACTIVE_ACCOUNT_KEY, accountId ?? '');
-    setRecords(await listRecordsByAccount(accountId ?? undefined));
-    if (accountId) pushNotification('info', '已切换账号', accountId);
-  }, [pushNotification]);
+  const setActiveAccountId = useCallback(
+    async (accountId: string | null) => {
+      setActiveAccountIdState(accountId);
+      await savePreference(ACTIVE_ACCOUNT_KEY, accountId ?? '');
+      setRecords(await listRecordsByAccount(accountId ?? undefined));
+      if (accountId) pushNotification('info', '已切换账号', accountId);
+    },
+    [pushNotification],
+  );
 
-  const syncRemoteAssets = useCallback(async (forceImageRefresh: boolean) => {
-    const result = await fetchRemoteAssets();
-    await saveMetadataSnapshot(result.metadata);
-    await savePreference(RESOURCE_VERSION_KEY, result.version);
-    const versionChanged = result.version !== resourceVersion;
-    let cacheStarted = false;
-    if (isTauriRuntime() && (forceImageRefresh || versionChanged)) {
-      const cacheTask = await invoke<{ started: boolean }>('sync_asset_cache');
-      cacheStarted = cacheTask.started;
-    }
-    setMetadata(result.metadata);
-    setResourceVersion(result.version);
-    await Promise.allSettled(result.metadata.map((pool) => ensurePoolScaffold(pool)));
-    return { pools: result.metadata.length, version: result.version, updatedAt: result.updatedAt, cacheStarted };
-  }, [resourceVersion]);
+  const syncRemoteAssets = useCallback(
+    async (forceImageRefresh: boolean) => {
+      const result = await fetchRemoteAssets();
+      await saveMetadataSnapshot(result.metadata);
+      await savePreference(RESOURCE_VERSION_KEY, result.version);
+      const versionChanged = result.version !== resourceVersion;
+      let cacheStarted = false;
+      if (isTauriRuntime() && (forceImageRefresh || versionChanged)) {
+        const cacheTask = await invoke<{ started: boolean }>('sync_asset_cache');
+        cacheStarted = cacheTask.started;
+      }
+      setMetadata(result.metadata);
+      setResourceVersion(result.version);
+      await Promise.allSettled(result.metadata.map((pool) => ensurePoolScaffold(pool)));
+      void probeOfficialBanners(result.metadata);
+      return { pools: result.metadata.length, version: result.version, updatedAt: result.updatedAt, cacheStarted };
+    },
+    [resourceVersion],
+  );
 
   const syncAssets = useCallback(() => syncRemoteAssets(true), [syncRemoteAssets]);
 
   useEffect(() => {
     if (autoSyncStarted.current) return;
     autoSyncStarted.current = true;
+    void loadCachedOfficialBanners();
     void syncRemoteAssets(false).catch(() => {
       // Startup synchronization is intentionally non-blocking; the local snapshot remains active.
     });
   }, [syncRemoteAssets]);
 
-  const deleteAccount = useCallback(async (accountId: string) => {
-    const account = accounts.find((e) => e.id === accountId);
-    if (!account) throw new Error('未找到要删除的账号。');
-    await deleteAccountCascade(accountId);
-    const remaining = accounts.filter((e) => e.id !== accountId);
-    const nextActive = activeAccountId === accountId ? (remaining[0]?.id ?? null) : activeAccountId;
-    await savePreference(ACTIVE_ACCOUNT_KEY, nextActive ?? '');
-    await refresh(nextActive);
-    pushNotification('success', '账号已删除', `已删除 ${account.nickname} 的本地账号和记录。`);
-  }, [accounts, activeAccountId, pushNotification, refresh]);
+  const deleteAccount = useCallback(
+    async (accountId: string) => {
+      const account = accounts.find((e) => e.id === accountId);
+      if (!account) throw new Error('未找到要删除的账号。');
+      await deleteAccountCascade(accountId);
+      const remaining = accounts.filter((e) => e.id !== accountId);
+      const nextActive = activeAccountId === accountId ? (remaining[0]?.id ?? null) : activeAccountId;
+      await savePreference(ACTIVE_ACCOUNT_KEY, nextActive ?? '');
+      await refresh(nextActive);
+      pushNotification('success', '账号已删除', `已删除 ${account.nickname} 的本地账号和记录。`);
+    },
+    [accounts, activeAccountId, pushNotification, refresh],
+  );
 
   const importBindings = useCallback(async () => {
     const imported = await saveAccountsFromBindings(bindings);
     await Promise.all(
-      [...new Set(imported.map((account) => account.hg_uid))]
-        .map((hgUid) => saveCheckInToken(hgUid, token)),
+      [...new Set(imported.map((account) => account.hg_uid))].map((hgUid) => saveCheckInToken(hgUid, token)),
     );
     await refresh();
     if (!activeAccountId && imported[0]) await setActiveAccountId(imported[0].id);
@@ -135,8 +149,25 @@ export function useDataState(input: DataBootInput): DataContextValue {
   }, [bindings, token, refresh, activeAccountId, setActiveAccountId, pushNotification]);
 
   return {
-    storageState, pathsLabel, resourceVersion, accounts, activeAccountId, setActiveAccountId,
-    records, metadata, metadataIndex, summary, poolSummaries, featuredPools,
-    pityGaps, pityGapsWpn, limitedPity, rerunPitySeries, refresh, syncAssets, deleteAccount, importBindings,
+    storageState,
+    pathsLabel,
+    resourceVersion,
+    accounts,
+    activeAccountId,
+    setActiveAccountId,
+    records,
+    metadata,
+    metadataIndex,
+    summary,
+    poolSummaries,
+    featuredPools,
+    pityGaps,
+    pityGapsWpn,
+    limitedPity,
+    rerunPitySeries,
+    refresh,
+    syncAssets,
+    deleteAccount,
+    importBindings,
   };
 }
