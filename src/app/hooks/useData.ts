@@ -13,6 +13,10 @@ import { saveCheckInToken } from '@/modules/skland-checkin/config';
 import { listAccounts, listMetadata, listRecordsByAccount } from '@/modules/storage/queries';
 import { deleteAccountCascade, savePreference, saveMetadataSnapshot } from '@/modules/storage/repositories';
 import { summarizePools, summarizeRecords, selectFeaturedPools, computePityGaps } from '@/modules/stats-engine/summary';
+import {
+  computeLimitedCharacterPity,
+  computeRerunCharacterPitySeries,
+} from '@/modules/stats-engine/banner-rules';
 import { ensurePoolScaffold } from '@/modules/pool-management/files';
 import { fetchRemoteAssets } from '@/modules/metadata/remoteAssets';
 import { invoke } from '@tauri-apps/api/core';
@@ -57,6 +61,8 @@ export function useDataState(input: DataBootInput): DataContextValue {
   const featuredPools = useMemo(() => selectFeaturedPools(poolSummaries), [poolSummaries]);
   const pityGaps = useMemo(() => computePityGaps(records, 'character'), [records]);
   const pityGapsWpn = useMemo(() => computePityGaps(records, 'weapon'), [records]);
+  const limitedPity = useMemo(() => computeLimitedCharacterPity(records, metadataIndex), [metadataIndex, records]);
+  const rerunPitySeries = useMemo(() => computeRerunCharacterPitySeries(records, metadataIndex), [metadataIndex, records]);
 
   const refresh = useCallback(async (preferredAccountId?: string | null) => {
     const accountsData = await listAccounts();
@@ -171,7 +177,7 @@ export function useDataState(input: DataBootInput): DataContextValue {
   return {
     storageState, pathsLabel, resourceVersion, accounts, activeAccountId, setActiveAccountId,
     records, metadata, metadataIndex, summary, poolSummaries, featuredPools,
-    pityGaps, pityGapsWpn, refresh, syncAssets, deleteAccount, importBindings,
+    pityGaps, pityGapsWpn, limitedPity, rerunPitySeries, refresh, syncAssets, deleteAccount, importBindings,
     exportJson, exportFullJson, importJson, exportCsv, importCsv,
   };
 }

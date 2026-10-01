@@ -3,6 +3,10 @@ import type { GameAccount, GachaRecord, PoolMetadata } from '@/domain/types';
 import type { BoundAccount } from '@/modules/official-api/types';
 import type { SyncState } from '@/modules/sync-engine/service';
 import type { summarizeRecords, summarizePools, selectFeaturedPools, PityGapInfo } from '@/modules/stats-engine/summary';
+import type {
+  LimitedCharacterPity,
+  RerunCharacterSeriesPity,
+} from '@/modules/stats-engine/banner-rules';
 
 export interface AppNotification {
   id: string;
@@ -58,6 +62,8 @@ export interface DataContextValue {
   featuredPools: ReturnType<typeof selectFeaturedPools>;
   pityGaps: PityGapInfo[];
   pityGapsWpn: PityGapInfo[];
+  limitedPity: LimitedCharacterPity;
+  rerunPitySeries: RerunCharacterSeriesPity[];
   refresh: (preferredAccountId?: string | null) => Promise<void>;
   syncAssets: () => Promise<{ pools: number; version: string; updatedAt: string; cacheStarted: boolean }>;
   deleteAccount: (accountId: string) => Promise<void>;

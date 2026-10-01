@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react';
 import type { PoolSummary, SummaryMetrics, PityGapInfo } from '@/modules/stats-engine/summary';
-import { PityProgressBar } from '@/components/PityProgressBar';
 import { AvatarImg } from '@/components/AvatarImg';
 
 interface StatisticsPageProps {
@@ -109,11 +108,6 @@ export const StatisticsPage = memo(function StatisticsPage({ summary, poolSummar
             ) : <span className="text-sm text-muted">—</span>}
           </div>
         </div>
-      </section>
-
-      <section className="ef-sec p-5 sm:p-6">
-        <p className="ef-kicker mb-3">保底进度</p>
-        <PityProgressBar currentPity={summary.currentPity} />
       </section>
 
       <section className="ef-sec grid gap-6 p-5 sm:p-6">

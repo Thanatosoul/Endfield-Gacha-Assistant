@@ -4,8 +4,10 @@ import { getPoolImageCandidates, readPoolJsonMerged } from '@/modules/pool-manag
 import type { GachaCategory, GachaRecord } from '@/domain/types';
 import type { PoolSummary } from '@/modules/stats-engine/summary';
 import type { CharacterPoolKind } from '@/modules/pool-management/poolKind';
+import type { LimitedCharacterPity, RerunCharacterPity, RerunCharacterSeriesPity } from '@/modules/stats-engine/banner-rules';
 import { RarityDonut } from '@/components/RarityDonut';
 import { PullTimeline } from '@/components/PullTimeline';
+import { LimitedPityPanel, RerunPityPanel } from '@/components/BannerPity';
 import { compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
 import { PoolEditModal } from '@/pages/PoolEditModal';
 import { useData } from '@/app/hooks/contexts';
@@ -17,9 +19,12 @@ interface PoolBrowserPageProps {
   category: GachaCategory;
   poolSummaries: PoolSummary[];
   records: GachaRecord[];
+  limitedPity: LimitedCharacterPity;
+  rerunPitySeries: RerunCharacterSeriesPity[];
 }
 
-export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSummaries, records }: PoolBrowserPageProps) {
+export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSummaries, records, limitedPity, rerunPitySeries }: PoolBrowserPageProps) {
+  const { metadataIndex } = useData();
   const [tab, setTab] = useState<CharacterPoolKind | 'weapon-limited' | 'weapon-standard'>('special');
   const [selectedPool, setSelectedPool] = useState<PoolSummary | null>(null);
   const [editingPoolId, setEditingPoolId] = useState<string | null>(null);
@@ -81,6 +86,37 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
     }
     return map;
   }, [records]);
+
+  const rerunPanels = useMemo<RerunCharacterPity[]>(() => {
+    if (category !== 'character' || tab !== 'rerun') return [];
+    const byPool = new Map<string, RerunCharacterSeriesPity>();
+    for (const series of rerunPitySeries) {
+      for (const poolId of series.poolIds) byPool.set(poolId, series);
+    }
+    const seen = new Set<string>();
+    const panels: RerunCharacterPity[] = [];
+    for (const pool of pools) {
+      const series = byPool.get(pool.poolId);
+      if (series) {
+        if (!seen.has(series.seriesKey)) {
+          seen.add(series.seriesKey);
+          panels.push(series);
+        }
+      } else {
+        panels.push({
+          poolId: pool.poolId,
+          upName: metadataIndex.get(pool.poolId)?.up6_name?.trim() || null,
+          upPity: 0,
+          upRemaining: 120,
+          upGuaranteeConsumed: false,
+          tokenPulls: 0,
+          tokenProgress: 0,
+          tokensEarned: 0,
+        });
+      }
+    }
+    return panels;
+  }, [category, tab, pools, rerunPitySeries, metadataIndex]);
 
   useEffect(() => {
     let alive = true;
@@ -169,6 +205,12 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({ category, poolSum
           }
         </div>
       </section>
+
+      {category === 'character' && tab === 'special' && <LimitedPityPanel pity={limitedPity} />}
+
+      {rerunPanels.map((panel) => (
+        <RerunPityPanel key={panel.poolId ?? panel.upName ?? 'rerun'} pity={panel} />
+      ))}
 
       <div className="grid gap-3">
         {pools.map((pool) => (

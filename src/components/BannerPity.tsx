@@ -1,0 +1,103 @@
+import { memo } from 'react';
+import type { LimitedCharacterPity, RerunCharacterPity } from '@/modules/stats-engine/banner-rules';
+
+function toneFor(ratio: number): string {
+  if (ratio >= 1) return '#991b1b';
+  if (ratio >= 0.75) return '#dc2626';
+  if (ratio >= 0.6) return '#f59e0b';
+  return '#22c55e';
+}
+
+export const PityBar = memo(function PityBar({
+  label,
+  value,
+  cap,
+  note,
+}: {
+  label: string;
+  value: number;
+  cap: number;
+  note?: string;
+}) {
+  const ratio = cap > 0 ? value / cap : 0;
+  const pct = Math.min(ratio * 100, 100);
+  const color = toneFor(ratio);
+
+  return (
+    <div className="py-1.5">
+      <div className="mb-1 flex items-baseline justify-between gap-3">
+        <span className="text-sm text-muted">{label}</span>
+        <span className="font-mono text-xs tabular-nums text-muted">
+          <strong className="text-[color:var(--text-main)]">{value}</strong>
+          <span> / {cap}</span>
+          {note ? <span className="ml-2">{note}</span> : null}
+        </span>
+      </div>
+      <div
+        className="relative h-3 w-full overflow-hidden"
+        style={{ background: 'var(--rule-soft)', outline: '1px solid var(--rule)' }}
+      >
+        <div
+          className="h-full transition-[width]"
+          style={{ width: `${Math.max(pct, value > 0 ? 4 : 0)}%`, background: color, opacity: 0.9 }}
+        />
+      </div>
+    </div>
+  );
+});
+
+export const LimitedPityPanel = memo(function LimitedPityPanel({ pity }: { pity: LimitedCharacterPity }) {
+  return (
+    <section className="ef-sub p-5">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="ef-code">限定寻访 · 连续保底</span>
+        <span className="text-xs text-muted">六星跨限定池 · UP 与本池信物按本期 · 免费十连不计入</span>
+      </div>
+      <PityBar
+        label="六星保底（跨限定池）"
+        value={pity.sixStarPity}
+        cap={80}
+        note={pity.sixStarRemaining === 0 ? '已达保底' : `还差 ${pity.sixStarRemaining}`}
+      />
+      <PityBar
+        label="UP 保底（本池，出 UP 六星重置）"
+        value={pity.upPity}
+        cap={120}
+        note={pity.upRemaining === 0 ? '已达保底' : `还差 ${pity.upRemaining}`}
+      />
+      <PityBar
+        label="UP 信物（本池 240 抽）"
+        value={pity.tokenProgress}
+        cap={240}
+        note={`已获 ${pity.tokensEarned}`}
+      />
+    </section>
+  );
+});
+
+export const RerunPityPanel = memo(function RerunPityPanel({ pity }: { pity: RerunCharacterPity }) {
+  return (
+    <section className="ef-sub p-5">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="ef-code">
+          复刻寻访{pity.upName ? ` · ${pity.upName}` : ''}
+        </span>
+        <span className="text-xs text-muted">
+          {pity.upGuaranteeConsumed ? '该角色一次性 UP 保底已消耗' : '120 抽 UP 保底（同角色跨复刻继承）'}
+        </span>
+      </div>
+      <PityBar
+        label="UP 保底（同角色跨复刻）"
+        value={pity.upPity}
+        cap={120}
+        note={pity.upGuaranteeConsumed ? '已消耗' : `还差 ${pity.upRemaining}`}
+      />
+      <PityBar
+        label="UP 信物（同角色 240 抽）"
+        value={pity.tokenProgress}
+        cap={240}
+        note={`已获 ${pity.tokensEarned}`}
+      />
+    </section>
+  );
+});

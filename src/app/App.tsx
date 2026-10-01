@@ -101,7 +101,7 @@ function SyncLayer() {
 
 function AppContent() {
   const { notifications, dismissNotification, pushNotification } = useNotifications();
-  const { accounts, activeAccountId, summary, poolSummaries, pityGaps, pityGapsWpn, records, resourceVersion } = useData();
+  const { accounts, activeAccountId, summary, poolSummaries, pityGaps, pityGapsWpn, limitedPity, rerunPitySeries, records, resourceVersion } = useData();
   const [page, setPage] = useState<PageKey>('statistics');
   const [now, setNow] = useState(new Date());
   const [appVersion, setAppVersion] = useState<string>(__APP_VERSION__);
@@ -169,9 +169,9 @@ function AppContent() {
     page === 'statistics' ? (
       <StatisticsPage summary={safeSummary} poolSummaries={poolSummaries} pityGaps={pityGaps} pityGapsWpn={pityGapsWpn} />
     ) : page === 'characterPools' ? (
-      <PoolBrowserPage category="character" poolSummaries={poolSummaries} records={records} />
+      <PoolBrowserPage category="character" poolSummaries={poolSummaries} records={records} limitedPity={limitedPity} rerunPitySeries={rerunPitySeries} />
     ) : page === 'weaponPools' ? (
-      <PoolBrowserPage category="weapon" poolSummaries={poolSummaries} records={records} />
+      <PoolBrowserPage category="weapon" poolSummaries={poolSummaries} records={records} limitedPity={limitedPity} rerunPitySeries={rerunPitySeries} />
     ) : page === 'records' ? (
       <RecordsPage accounts={accounts} records={records} />
     ) : page === 'accounts' ? (

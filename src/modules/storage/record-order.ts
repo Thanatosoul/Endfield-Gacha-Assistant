@@ -20,7 +20,12 @@ export function compareRecordsChronologically(left: GachaRecord, right: GachaRec
     return left.pool_order - right.pool_order;
   }
   if (left.gacha_ts !== right.gacha_ts) return left.gacha_ts - right.gacha_ts;
-  return compareSequenceIds(left.seq_id, right.seq_id);
+
+  // Equal timestamps must retain the input order. Official records can contain
+  // several ten-pulls from the same second, and seq_id is not a safe substitute
+  // for the order used by the game's pity calculation. Array#sort is stable in
+  // the supported runtimes, so returning 0 preserves that order.
+  return 0;
 }
 
 export function compareRecordsNewestFirst(left: GachaRecord, right: GachaRecord): number {

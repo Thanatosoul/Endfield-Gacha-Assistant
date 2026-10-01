@@ -34,6 +34,14 @@ describe('record ordering', () => {
     expect([first, second].sort(compareRecordsNewestFirst)).toEqual([second, first]);
   });
 
+  it('preserves input order for same-second records without an official pool order', () => {
+    const first = record({ record_uid: 'first', seq_id: '900', pool_order: 0 });
+    const second = record({ record_uid: 'second', seq_id: '100', pool_order: 0 });
+
+    expect([first, second].sort(compareRecordsChronologically)).toEqual([first, second]);
+    expect([first, second].sort(compareRecordsNewestFirst)).toEqual([first, second]);
+  });
+
   it('preserves JSON record array order when assigning imported pool orders', () => {
     const newest = record({ record_uid: 'newest', seq_id: '900', pool_order: 0 });
     const oldest = record({ record_uid: 'oldest', seq_id: '100', pool_order: 0 });
