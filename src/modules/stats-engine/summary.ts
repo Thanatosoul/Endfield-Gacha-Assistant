@@ -56,7 +56,7 @@ function poolSortKey(poolId: string): number[] {
   return digits;
 }
 
-function comparePoolIds(a: string, b: string): number {
+export function comparePoolIds(a: string, b: string): number {
   const ka = poolSortKey(a);
   const kb = poolSortKey(b);
   const len = Math.max(ka.length, kb.length);
@@ -121,7 +121,7 @@ export function computePityGaps(records: GachaRecord[], category?: GachaCategory
 export function computePitySinceLastUp(
   records: GachaRecord[],
   metadata: Map<string, PoolMetadata>,
-  category?: GachaCategory
+  category?: GachaCategory,
 ): number {
   if (!Array.isArray(records) || records.length === 0) return 0;
   // Only count pools that have an up6_name (limited/featured banners);
@@ -133,9 +133,7 @@ export function computePitySinceLastUp(
   });
   const latest = [...filtered].sort(compareRecordsNewestFirst)[0];
   if (!latest) return 0;
-  const sorted = filtered
-    .filter((record) => record.pool_id === latest.pool_id)
-    .sort(compareRecordsNewestFirst);
+  const sorted = filtered.filter((record) => record.pool_id === latest.pool_id).sort(compareRecordsNewestFirst);
   let count = 0;
   for (const record of sorted) {
     // Any 6-star resets the UP guarantee: an off-banner triggers it,
@@ -151,14 +149,11 @@ export function computePitySinceLastUp(
 }
 
 export function calculateCurrentPity(records: GachaRecord[], category?: GachaCategory, preSorted = false): number {
-  const filtered = records
-    .filter((record) => !category || record.category === category);
+  const filtered = records.filter((record) => !category || record.category === category);
 
   const latest = preSorted ? filtered[0] : [...filtered].sort(compareRecordsNewestFirst)[0];
   if (!latest) return 0;
-  const ordered = filtered
-    .filter((record) => record.pool_id === latest.pool_id)
-    .sort(compareRecordsNewestFirst);
+  const ordered = filtered.filter((record) => record.pool_id === latest.pool_id).sort(compareRecordsNewestFirst);
 
   let pity = 0;
   for (const record of ordered) {
@@ -176,7 +171,22 @@ export function calculateCurrentPity(records: GachaRecord[], category?: GachaCat
 
 export function summarizeRecords(records: GachaRecord[], metadata: Map<string, PoolMetadata>): SummaryMetrics {
   if (!Array.isArray(records)) {
-    return { totalPulls: 0, paidPulls: 0, rarityCounts: { 3: 0, 4: 0, 5: 0, 6: 0 }, sixStarRate: 0, fiveStarRate: 0, latestSixStar: null, latestUpSixStar: null, latestCharSixStar: null, latestWpnSixStar: null, currentPity: 0, currentPityWpn: 0, featuredSixStarHits: 0, offBannerSixStarHits: 0, pitySinceLastUp: 0 };
+    return {
+      totalPulls: 0,
+      paidPulls: 0,
+      rarityCounts: { 3: 0, 4: 0, 5: 0, 6: 0 },
+      sixStarRate: 0,
+      fiveStarRate: 0,
+      latestSixStar: null,
+      latestUpSixStar: null,
+      latestCharSixStar: null,
+      latestWpnSixStar: null,
+      currentPity: 0,
+      currentPityWpn: 0,
+      featuredSixStarHits: 0,
+      offBannerSixStarHits: 0,
+      pitySinceLastUp: 0,
+    };
   }
   const ordered = [...records].sort(compareRecordsNewestFirst);
 
@@ -233,7 +243,8 @@ export function summarizePools(records: GachaRecord[], metadata: Map<string, Poo
       poolId: record.pool_id,
       poolName: record.pool_name,
       category: record.category,
-      poolKind: metadata.get(record.pool_id)?.pool_kind ?? classifyPoolKind(record.pool_id, record.pool_type, record.category),
+      poolKind:
+        metadata.get(record.pool_id)?.pool_kind ?? classifyPoolKind(record.pool_id, record.pool_type, record.category),
       pulls: 0,
       freePulls: 0,
       sixStarHits: 0,
@@ -265,14 +276,16 @@ export function summarizePools(records: GachaRecord[], metadata: Map<string, Poo
 export function selectFeaturedPools(allPools: PoolSummary[]): PoolSummary[] {
   if (!Array.isArray(allPools)) return [];
   const charPools = allPools.filter((p) => p.category === 'character');
-  const wpnPools  = allPools.filter((p) => p.category === 'weapon');
+  const wpnPools = allPools.filter((p) => p.category === 'weapon');
 
   const standard = charPools.find((p) => {
     const id = p.poolId.toLowerCase();
     return id === 'standard' || id.startsWith('standard');
   });
 
-  const limitedChars = charPools.filter((p) => p.poolKind === 'special' || p.poolKind === 'joint' || p.poolKind === 'rerun');
+  const limitedChars = charPools.filter(
+    (p) => p.poolKind === 'special' || p.poolKind === 'joint' || p.poolKind === 'rerun',
+  );
   const latestLimitedChar = limitedChars[limitedChars.length - 1];
 
   const limitedWpns = wpnPools.filter((p) => {

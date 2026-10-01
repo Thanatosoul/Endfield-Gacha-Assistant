@@ -68,11 +68,6 @@ export interface DataContextValue {
   syncAssets: () => Promise<{ pools: number; version: string; updatedAt: string; cacheStarted: boolean }>;
   deleteAccount: (accountId: string) => Promise<void>;
   importBindings: () => Promise<void>;
-  exportJson: () => Promise<string | null>;
-  exportFullJson: () => Promise<string | null>;
-  importJson: () => Promise<{ accounts: number; records: number; fromLegacy: boolean }>;
-  exportCsv: () => Promise<string | null>;
-  importCsv: () => Promise<number>;
 }
 
 export const DataContext = createContext<DataContextValue | null>(null);

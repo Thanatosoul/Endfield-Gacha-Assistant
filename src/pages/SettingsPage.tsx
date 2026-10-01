@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { Cloud, Download, RefreshCw, Upload } from 'lucide-react';
 import { useData } from '@/app/hooks/contexts';
 import { SyncHistoryPanel } from '@/components/SyncHistoryPanel';
+import { ToggleSwitch } from '@/components/ToggleSwitch';
 import { getSecurePreference, saveSecurePreference } from '@/modules/storage/repositories';
 import { isTauriRuntime } from '@/lib/runtime';
 import {
@@ -33,9 +34,7 @@ function describeRestore(result: BackupRestoreResult): string {
 }
 
 export const SettingsPage = memo(function SettingsPage() {
-  const { storageState, pathsLabel, exportJson, importJson, exportCsv, importCsv, syncAssets, refresh } = useData();
-  const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [csvMsg, setCsvMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const { storageState, pathsLabel, syncAssets, refresh } = useData();
   const [assetMsg, setAssetMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [syncingAssets, setSyncingAssets] = useState(false);
 
@@ -106,49 +105,6 @@ export const SettingsPage = memo(function SettingsPage() {
       if (pass) setWdavPass(pass);
     })();
   }, []);
-
-  const handleExportJson = async () => {
-    try {
-      const path = await exportJson();
-      if (path != null && path.length > 0) {
-        setImportMsg({ ok: true, text: path });
-      }
-    } catch (e) {
-      setImportMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
-    }
-  };
-
-  const handleImportJson = async () => {
-    try {
-      const result = await importJson();
-      const label = result.fromLegacy
-        ? `旧版格式已转换 · ${result.accounts} 账号, ${result.records} 条记录`
-        : `${result.accounts} accounts, ${result.records} records`;
-      setImportMsg({ ok: true, text: label });
-    } catch (e) {
-      setImportMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
-    }
-  };
-
-  const handleExportCsv = async () => {
-    try {
-      const path = await exportCsv();
-      if (path != null && path.length > 0) {
-        setCsvMsg({ ok: true, text: path });
-      }
-    } catch (e) {
-      setCsvMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
-    }
-  };
-
-  const handleImportCsv = async () => {
-    try {
-      const count = await importCsv();
-      setCsvMsg({ ok: true, text: `已导入 ${count} 条记录` });
-    } catch (e) {
-      setCsvMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
-    }
-  };
 
   const handleSyncAssets = async () => {
     setSyncingAssets(true);
@@ -307,22 +263,6 @@ export const SettingsPage = memo(function SettingsPage() {
             {assetMsg && <MsgBanner {...assetMsg} onDismiss={() => setAssetMsg(null)} />}
           </div>
 
-          {/* JSON backup */}
-          <div className="ef-sub p-5">
-            <div className="mb-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">导入 / 导出</div>
-            <div className="flex flex-wrap gap-3">
-              <ActionBtn onClick={() => void handleExportJson()}>导出 JSON</ActionBtn>
-              <ActionBtn onClick={() => void handleImportJson()}>导入 JSON</ActionBtn>
-              <ActionBtn onClick={() => void handleExportCsv()}>导出 CSV</ActionBtn>
-              <ActionBtn onClick={() => void handleImportCsv()}>导入 CSV</ActionBtn>
-            </div>
-            {importMsg && <MsgBanner {...importMsg} onDismiss={() => setImportMsg(null)} />}
-            {csvMsg && <MsgBanner {...csvMsg} onDismiss={() => setCsvMsg(null)} />}
-            <p className="mt-4 text-sm text-muted">
-              文件对话框使用 Tauri 插件，导入时自动去重。CSV 可在 Excel 中查看编辑。
-            </p>
-          </div>
-
           {/* WebDAV backup */}
           <div className="ef-sub p-5">
             <div className="mb-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted">
@@ -356,22 +296,19 @@ export const SettingsPage = memo(function SettingsPage() {
                   className="ef-field"
                 />
               </div>
-              <input
-                type="password"
-                value={wdavPassword}
-                onChange={(e) => setWdavPassword(e.target.value)}
-                placeholder="备份密码（加密备份 / 恢复加密备份时使用）"
-                className="ef-field"
-              />
-              <label className="flex items-center gap-2 text-xs text-muted">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-muted">使用密码加密本次备份（跨设备恢复时必须使用同一密码）</span>
+                <ToggleSwitch checked={wdavEncrypt} onChange={setWdavEncrypt} label="使用密码加密本次备份" />
+              </div>
+              {wdavEncrypt && (
                 <input
-                  type="checkbox"
-                  checked={wdavEncrypt}
-                  onChange={(e) => setWdavEncrypt(e.target.checked)}
-                  className="h-3.5 w-3.5"
+                  type="password"
+                  value={wdavPassword}
+                  onChange={(e) => setWdavPassword(e.target.value)}
+                  placeholder="备份密码（加密备份 / 恢复加密备份时使用）"
+                  className="ef-field"
                 />
-                使用密码加密本次备份（跨设备恢复时必须使用同一密码）
-              </label>
+              )}
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">

@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GameAccount, GachaRecord, PoolMetadata } from '@/domain/types';
 import { seedMetadata } from '@/modules/metadata/catalog';
-import {
-  exportSnapshotToJsonFile,
-  exportFullJsonToFile,
-  importSnapshotFromJsonFile,
-  exportRecordsToCsvFile,
-  importRecordsFromCsvFile,
-} from '@/modules/import-export/service';
 import { saveAccountsFromBindings } from '@/modules/storage/accounts';
 import { saveCheckInToken } from '@/modules/skland-checkin/config';
 import { listAccounts, listMetadata, listRecordsByAccount } from '@/modules/storage/queries';
@@ -141,43 +134,9 @@ export function useDataState(input: DataBootInput): DataContextValue {
     pushNotification('success', '导入完成', `已更新 ${imported.length} 个本地账号。`);
   }, [bindings, token, refresh, activeAccountId, setActiveAccountId, pushNotification]);
 
-  const exportJson = useCallback(async () => {
-    const filePath = await exportSnapshotToJsonFile();
-    if (filePath) pushNotification('success', '记录已导出', filePath);
-    return filePath;
-  }, [pushNotification]);
-
-  const exportFullJson = useCallback(async () => {
-    const filePath = await exportFullJsonToFile();
-    if (filePath) pushNotification('success', '完整数据已导出（含账户与Token）', filePath);
-    return filePath;
-  }, [pushNotification]);
-
-  const importJson = useCallback(async () => {
-    const result = await importSnapshotFromJsonFile();
-    await refresh();
-    const label = result.fromLegacy ? 'Legacy JSON imported' : 'JSON imported';
-    pushNotification('success', label, `${result.accounts} accounts, ${result.records} records restored.`);
-    return result;
-  }, [pushNotification, refresh]);
-
-  const exportCsv = useCallback(async () => {
-    const filePath = await exportRecordsToCsvFile();
-    if (filePath) pushNotification('success', 'CSV exported', filePath);
-    return filePath;
-  }, [pushNotification]);
-
-  const importCsv = useCallback(async () => {
-    const count = await importRecordsFromCsvFile();
-    await refresh();
-    pushNotification('success', 'CSV imported', `${count} records imported.`);
-    return count;
-  }, [pushNotification, refresh]);
-
   return {
     storageState, pathsLabel, resourceVersion, accounts, activeAccountId, setActiveAccountId,
     records, metadata, metadataIndex, summary, poolSummaries, featuredPools,
     pityGaps, pityGapsWpn, limitedPity, rerunPitySeries, refresh, syncAssets, deleteAccount, importBindings,
-    exportJson, exportFullJson, importJson, exportCsv, importCsv,
   };
 }

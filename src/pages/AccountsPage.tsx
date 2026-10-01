@@ -1,10 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck, Download, ExternalLink, RefreshCcw, Upload } from 'lucide-react';
+import { CalendarCheck, ExternalLink, RefreshCcw } from 'lucide-react';
 import { useData, useAuth, useSync } from '@/app/hooks/contexts';
 import { getCheckInConfig, enableCheckInConfig, deleteCheckInConfig, type CheckInConfig } from '@/modules/skland-checkin/config';
 
 export const AccountsPage = memo(function AccountsPage() {
-  const { accounts, activeAccountId, setActiveAccountId, records, importBindings, deleteAccount, refresh, exportFullJson, importJson } = useData();
+  const { accounts, activeAccountId, setActiveAccountId, records, importBindings, deleteAccount, refresh } = useData();
   const { token, setToken, appToken, bindings, authenticating, authenticate } = useAuth();
   const { syncState, syncActiveAccount, cancelSync } = useSync();
   const [refreshing, setRefreshing] = useState(false);
@@ -350,33 +350,6 @@ export const AccountsPage = memo(function AccountsPage() {
             >
               <span className="inline-flex items-center gap-2">
                 <RefreshCcw className="h-4 w-4" />{refreshing ? '刷新中…' : '刷新'}
-              </span>
-            </button>
-            <span className="w-px h-6 self-center" style={{ background: 'var(--rule)' }} />
-            <button
-              type="button"
-              onClick={() => void exportFullJson()}
-              className="ef-btn"
-            >
-              <span className="inline-flex items-center gap-2">
-                <Upload className="h-4 w-4" />转移账户全部数据
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void (async () => {
-                  try {
-                    await importJson();
-                  } catch {
-                    // handled by notification in action
-                  }
-                })();
-              }}
-              className="ef-btn"
-            >
-              <span className="inline-flex items-center gap-2">
-                <Download className="h-4 w-4" />导入账户数据
               </span>
             </button>
           </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GachaRecord } from '@/domain/types';
-import { assignFallbackPoolOrders, assignImportedPoolOrders, compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
+import { assignImportedPoolOrders, compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
 
 function record(overrides: Partial<GachaRecord>): GachaRecord {
   return {
@@ -47,16 +47,6 @@ describe('record ordering', () => {
     const oldest = record({ record_uid: 'oldest', seq_id: '100', pool_order: 0 });
 
     expect(assignImportedPoolOrders([newest, oldest])).toMatchObject([
-      { record_uid: 'oldest', pool_order: 1 },
-      { record_uid: 'newest', pool_order: 2 },
-    ]);
-  });
-
-  it('uses timestamp and sequence ID only as a CSV fallback', () => {
-    const newest = record({ record_uid: 'newest', seq_id: '900', pool_order: 0 });
-    const oldest = record({ record_uid: 'oldest', seq_id: '100', pool_order: 0 });
-
-    expect(assignFallbackPoolOrders([newest, oldest])).toMatchObject([
       { record_uid: 'oldest', pool_order: 1 },
       { record_uid: 'newest', pool_order: 2 },
     ]);

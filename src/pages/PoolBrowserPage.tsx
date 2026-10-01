@@ -1,9 +1,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Menu } from 'lucide-react';
 import { getPoolImageCandidates, readPoolJsonMerged } from '@/modules/pool-management/files';
-import type { GachaCategory, GachaRecord } from '@/domain/types';
-import type { PoolSummary } from '@/modules/stats-engine/summary';
-import type { CharacterPoolKind } from '@/modules/pool-management/poolKind';
+import type { GachaCategory, GachaRecord, PoolMetadata } from '@/domain/types';
+import { comparePoolIds, type PoolSummary } from '@/modules/stats-engine/summary';
+import { classifyPoolKind, type CharacterPoolKind, type PoolKind } from '@/modules/pool-management/poolKind';
 import type {
   LimitedCharacterPity,
   RerunCharacterPity,
@@ -12,6 +12,7 @@ import type {
 import { RarityDonut } from '@/components/RarityDonut';
 import { PullTimeline } from '@/components/PullTimeline';
 import { LimitedPityPanel, RerunPityPanel } from '@/components/BannerPity';
+import { ToggleSwitch } from '@/components/ToggleSwitch';
 import { compareRecordsChronologically, compareRecordsNewestFirst } from '@/modules/storage/record-order';
 import { PoolEditModal } from '@/pages/PoolEditModal';
 import { useData } from '@/app/hooks/contexts';
@@ -19,6 +20,33 @@ import { rarityTextClass } from '@/lib/rarity-utils';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
 import { AvatarImg } from '@/components/AvatarImg';
 import { useVirtualRows } from '@/components/useVirtualRows';
+
+type WeaponTab = 'weapon-limited' | 'weapon-standard';
+
+const EMPTY_RARITY_COUNTS: Record<3 | 4 | 5 | 6, number> = { 3: 0, 4: 0, 5: 0, 6: 0 };
+
+function matchesWeaponTab(poolId: string, tab: WeaponTab): boolean {
+  const id = poolId.toLowerCase();
+  if (tab === 'weapon-limited') {
+    return (id.startsWith('weponbox_1_') || id.startsWith('weaponbox_1_')) && !id.includes('constant');
+  }
+  return id.startsWith('weaponbox_constant_') || id.startsWith('weponbox_constant_');
+}
+
+function emptyPoolSummary(meta: PoolMetadata, kind: PoolKind): PoolSummary {
+  return {
+    poolId: meta.pool_id,
+    poolName: meta.pool_name,
+    category: meta.category,
+    poolKind: kind,
+    pulls: 0,
+    freePulls: 0,
+    sixStarHits: 0,
+    featuredSixStarHits: 0,
+    rarityCounts: { ...EMPTY_RARITY_COUNTS },
+    earliestTs: meta.valid_from,
+  };
+}
 
 interface PoolBrowserPageProps {
   category: GachaCategory;
@@ -37,6 +65,7 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({
 }: PoolBrowserPageProps) {
   const { metadataIndex } = useData();
   const [tab, setTab] = useState<CharacterPoolKind | 'weapon-limited' | 'weapon-standard'>('special');
+  const [showEmptyPools, setShowEmptyPools] = useState(false);
   const [selectedPool, setSelectedPool] = useState<PoolSummary | null>(null);
   const [editingPoolId, setEditingPoolId] = useState<string | null>(null);
   const [assetsVersion, setAssetsVersion] = useState(0);
@@ -47,20 +76,25 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({
 
   const pools = useMemo(() => {
     const all = poolSummaries.filter((p) => p.category === category);
-    if (category === 'character') {
-      return all.filter((p) => p.poolKind === tab);
+    const filtered =
+      category === 'character'
+        ? all.filter((p) => p.poolKind === tab)
+        : all.filter((p) => matchesWeaponTab(p.poolId, tab as WeaponTab));
+
+    if (!showEmptyPools) return filtered;
+
+    const existingIds = new Set(filtered.map((p) => p.poolId));
+    const extras: PoolSummary[] = [];
+    for (const meta of metadataIndex.values()) {
+      if (meta.category !== category || existingIds.has(meta.pool_id)) continue;
+      const kind = meta.pool_kind ?? classifyPoolKind(meta.pool_id, meta.pool_type, meta.category);
+      const matches = category === 'character' ? kind === tab : matchesWeaponTab(meta.pool_id, tab as WeaponTab);
+      if (!matches) continue;
+      extras.push(emptyPoolSummary(meta, kind));
     }
 
-    const limited = all.filter((p) => {
-      const id = p.poolId.toLowerCase();
-      return (id.startsWith('weponbox_1_') || id.startsWith('weaponbox_1_')) && !id.includes('constant');
-    });
-    const constant = all.filter((p) => {
-      const id = p.poolId.toLowerCase();
-      return id.startsWith('weaponbox_constant_') || id.startsWith('weponbox_constant_');
-    });
-    return tab === 'weapon-limited' ? limited : constant;
-  }, [category, poolSummaries, tab]);
+    return [...filtered, ...extras].sort((a, b) => comparePoolIds(b.poolId, a.poolId));
+  }, [category, poolSummaries, tab, showEmptyPools, metadataIndex]);
 
   // Stable callbacks via ref to avoid re-creating functions in .map()
   const poolsRef = useRef(pools);
@@ -165,7 +199,13 @@ export const PoolBrowserPage = memo(function PoolBrowserPage({
             <p className="ef-kicker">{category === 'character' ? '角色卡池' : '武器卡池'}</p>
             <h3 className="mt-2 ef-title text-xl">{category === 'character' ? '卡池总览' : '武库总览'}</h3>
           </div>
-          <div className="font-mono text-xs uppercase tracking-[0.14em] text-muted">{pools.length} 个卡池</div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <ToggleSwitch checked={showEmptyPools} onChange={setShowEmptyPools} label="显示无记录卡池" />
+              <span className="font-mono text-xs uppercase tracking-[0.14em] text-muted">显示无记录卡池</span>
+            </div>
+            <div className="font-mono text-xs uppercase tracking-[0.14em] text-muted">{pools.length} 个卡池</div>
+          </div>
         </div>
 
         <div className="mt-4 flex gap-2 border-b border-[color:var(--panel-border)]">
